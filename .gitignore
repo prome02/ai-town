@@ -43,3 +43,11 @@ dist
 
 convex-local*
 convex_local*
+
+# Convex generated files
+convex/_generated/
+
+# Local test/dev directories
+ai-town/
+
+.env.local
