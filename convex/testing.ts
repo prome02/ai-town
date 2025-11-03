@@ -200,3 +200,56 @@ export const testConvo = internalAction({
     return await a.readAll();
   },
 });
+
+// ============================================
+// Location System Testing Queries (Day 2)
+// ============================================
+
+// Get test locations for prototype UI
+export const getTestLocations = query({
+  handler: async (ctx) => {
+    const world = await ctx.db.query('worlds').first();
+    if (!world) return [];
+
+    return await ctx.db
+      .query('locations')
+      .withIndex('worldId', (q) => q.eq('worldId', world._id))
+      .collect();
+  },
+});
+
+// Get players with their location information
+export const getPlayersWithLocations = query({
+  handler: async (ctx) => {
+    const world = await ctx.db.query('worlds').first();
+    if (!world) return [];
+
+    // Parse players from world
+    const players = world.players || [];
+
+    return players.map((p: any) => ({
+      id: p.id,
+      name: 'Player ' + p.id, // Will use actual names from descriptions later
+      currentLocation: p.currentLocation || 'unknown',
+      targetLocation: p.targetLocation,
+      position: p.position,
+    }));
+  },
+});
+
+// Manual testing: Set a player's location
+export const setPlayerLocation = mutation({
+  args: {
+    playerId: v.string(),
+    locationId: v.string(),
+  },
+  handler: async (ctx, { playerId, locationId }) => {
+    const world = await ctx.db.query('worlds').first();
+    if (!world) throw new Error('No world found');
+
+    console.log(`Setting player ${playerId} to location ${locationId}`);
+    // Note: Full implementation would update world.players array
+    // For now, this is a placeholder for testing
+    return { success: true, playerId, locationId };
+  },
+});
