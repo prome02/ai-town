@@ -54,6 +54,12 @@ export const serializedPlayer = {
   position: point,
   facing: vector,
   speed: v.number(),
+
+  // === New location system fields (experimental) ===
+  currentLocation: v.optional(v.string()),  // New discrete location system ID
+  targetLocation: v.optional(v.string()),   // Movement target location
+  travelStarted: v.optional(v.number()),    // Travel start timestamp
+  travelDuration: v.optional(v.number()),   // Travel duration in milliseconds
 };
 export type SerializedPlayer = ObjectType<typeof serializedPlayer>;
 
@@ -69,8 +75,27 @@ export class Player {
   facing: Vector;
   speed: number;
 
+  // === New location system fields (experimental) ===
+  currentLocation?: string;
+  targetLocation?: string;
+  travelStarted?: number;
+  travelDuration?: number;
+
   constructor(serialized: SerializedPlayer) {
-    const { id, human, pathfinding, activity, lastInput, position, facing, speed } = serialized;
+    const {
+      id,
+      human,
+      pathfinding,
+      activity,
+      lastInput,
+      position,
+      facing,
+      speed,
+      currentLocation,
+      targetLocation,
+      travelStarted,
+      travelDuration,
+    } = serialized;
     this.id = parseGameId('players', id);
     this.human = human;
     this.pathfinding = pathfinding;
@@ -79,6 +104,11 @@ export class Player {
     this.position = position;
     this.facing = facing;
     this.speed = speed;
+    // New location system fields
+    this.currentLocation = currentLocation;
+    this.targetLocation = targetLocation;
+    this.travelStarted = travelStarted;
+    this.travelDuration = travelDuration;
   }
 
   tick(game: Game, now: number) {
@@ -249,7 +279,20 @@ export class Player {
   }
 
   serialize(): SerializedPlayer {
-    const { id, human, pathfinding, activity, lastInput, position, facing, speed } = this;
+    const {
+      id,
+      human,
+      pathfinding,
+      activity,
+      lastInput,
+      position,
+      facing,
+      speed,
+      currentLocation,
+      targetLocation,
+      travelStarted,
+      travelDuration,
+    } = this;
     return {
       id,
       human,
@@ -259,6 +302,10 @@ export class Player {
       position,
       facing,
       speed,
+      currentLocation,
+      targetLocation,
+      travelStarted,
+      travelDuration,
     };
   }
 }

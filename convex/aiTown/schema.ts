@@ -76,4 +76,19 @@ export const aiTownTables = {
     .index('edge', ['worldId', 'player1', 'player2', 'ended'])
     .index('conversation', ['worldId', 'player1', 'conversationId'])
     .index('playerHistory', ['worldId', 'player1', 'ended']),
+
+  // Locations table for the new discrete location system
+  // Represents different places in the virtual world where players can be
+  locations: defineTable({
+    worldId: v.id('worlds'),
+    locationId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    type: v.union(v.literal('room'), v.literal('public')),
+    connectedTo: v.array(v.string()),
+    sceneImageUrl: v.optional(v.string()),
+    capacity: v.optional(v.number()),
+  })
+    .index('worldId', ['worldId'])
+    .index('locationId', ['worldId', 'locationId']),
 };
