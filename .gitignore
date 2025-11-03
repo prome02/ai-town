@@ -51,3 +51,6 @@ convex/_generated/
 ai-town/
 
 .env.local
+
+# Claude Code 配置
+.claude/
