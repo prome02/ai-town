@@ -26,11 +26,22 @@ import { HistoricalObject } from '../engine/historicalObject';
 import { AgentDescription, serializedAgentDescription } from './agentDescription';
 import { parseMap, serializeMap } from '../util/object';
 
+const serializedLocation = v.object({
+  locationId: v.string(),
+  name: v.string(),
+  description: v.string(),
+  type: v.union(v.literal('room'), v.literal('public')),
+  connectedTo: v.array(v.string()),
+  sceneImageUrl: v.optional(v.string()),
+  capacity: v.optional(v.number()),
+});
+
 const gameState = v.object({
   world: v.object(serializedWorld),
   playerDescriptions: v.array(v.object(serializedPlayerDescription)),
   agentDescriptions: v.array(v.object(serializedAgentDescription)),
   worldMap: v.object(serializedWorldMap),
+  locations: v.array(serializedLocation),
 });
 type GameState = Infer<typeof gameState>;
 
@@ -81,6 +92,11 @@ export class Game extends AbstractGame {
       (p) => p.playerId,
     );
 
+    // Populate world.locations Map from state
+    for (const location of state.locations) {
+      this.world.locations.set(location.locationId, location);
+    }
+
     this.historicalLocations = new Map();
 
     this.numPathfinds = 0;
@@ -118,6 +134,11 @@ export class Game extends AbstractGame {
     if (!worldMapDoc) {
       throw new Error(`No map found for world ${worldId}`);
     }
+    // Load locations from database
+    const locationsDocs = await db
+      .query('locations')
+      .withIndex('worldId', (q) => q.eq('worldId', worldId))
+      .collect();
     // Discard the system fields and historicalLocations from the world state.
     const { _id, _creationTime, historicalLocations: _, ...world } = worldDoc;
     const playerDescriptions = playerDescriptionsDocs
@@ -133,6 +154,8 @@ export class Game extends AbstractGame {
       worldId: _mapWorldId,
       ...worldMap
     } = worldMapDoc;
+    // Process locations - remove system fields (provide empty array as default)
+    const locations = locationsDocs.map(({ _id, _creationTime, worldId: _, ...loc }) => loc);
     return {
       engine,
       gameState: {
@@ -140,6 +163,7 @@ export class Game extends AbstractGame {
         playerDescriptions,
         agentDescriptions,
         worldMap,
+        locations: locations.length > 0 ? locations : [],
       },
     };
   }

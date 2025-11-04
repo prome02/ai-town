@@ -253,3 +253,11 @@ export const setPlayerLocation = mutation({
     return { success: true, playerId, locationId };
   },
 });
+
+// Get the default world ID
+export const getWorldId = query({
+  handler: async (ctx) => {
+    const world = await ctx.db.query('worlds').first();
+    return world ? world._id : null;
+  },
+});

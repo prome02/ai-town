@@ -15,6 +15,7 @@ import { stopPlayer, findRoute, blocked, movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
 import { characters } from '../../data/characters';
 import { PlayerDescription } from './playerDescription';
+import { tickTravel, startTravel } from './simpleMovement';
 
 const pathfinding = v.object({
   destination: point,
@@ -112,8 +113,18 @@ export class Player {
   }
 
   tick(game: Game, now: number) {
+    // Human player timeout check
     if (this.human && this.lastInput < now - HUMAN_IDLE_TOO_LONG) {
       this.leave(game, now);
+    }
+
+    // === New location-based movement system ===
+    // Only process location travel if player is using the new system
+    if (this.currentLocation !== undefined) {
+      const arrivedAtDestination = tickTravel(this, now);
+      if (arrivedAtDestination) {
+        console.log(`Player ${this.id} arrived at location ${this.currentLocation}`);
+      }
     }
   }
 
@@ -351,6 +362,32 @@ export const playerInputs = {
       } else {
         stopPlayer(player);
       }
+      return null;
+    },
+  }),
+  moveToLocation: inputHandler({
+    args: {
+      playerId,
+      targetLocationId: v.string(),
+    },
+    handler: (game, now, args) => {
+      const playerId = parseGameId('players', args.playerId);
+      const player = game.world.players.get(playerId);
+      if (!player) {
+        throw new Error(`Invalid player ID ${playerId}`);
+      }
+
+      // Player must have currentLocation to use location system
+      if (!player.currentLocation) {
+        throw new Error(`Player ${playerId} is not in the location system`);
+      }
+
+      // Attempt to start travel
+      const result = startTravel(player, args.targetLocationId, game.world.locations, now);
+      if (!result.success) {
+        throw new Error(result.reason || 'Failed to start travel');
+      }
+
       return null;
     },
   }),

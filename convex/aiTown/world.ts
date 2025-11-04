@@ -27,6 +27,7 @@ export class World {
   players: Map<GameId<'players'>, Player>;
   agents: Map<GameId<'agents'>, Agent>;
   historicalLocations?: Map<GameId<'players'>, ArrayBuffer>;
+  locations: Map<string, any>; // locationId -> location data
 
   constructor(serialized: SerializedWorld) {
     const { nextId, historicalLocations } = serialized;
@@ -35,6 +36,9 @@ export class World {
     this.conversations = parseMap(serialized.conversations, Conversation, (c) => c.id);
     this.players = parseMap(serialized.players, Player, (p) => p.id);
     this.agents = parseMap(serialized.agents, Agent, (a) => a.id);
+
+    // Initialize empty locations map (will be populated by Game.load)
+    this.locations = new Map();
 
     if (historicalLocations) {
       this.historicalLocations = new Map();
