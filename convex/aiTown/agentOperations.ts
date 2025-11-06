@@ -10,10 +10,19 @@ import {
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
 import { serializedAgent } from './agent';
-import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
+import {
+  ACTIVITIES,
+  ACTIVITY_COOLDOWN,
+  CONVERSATION_COOLDOWN,
+  ActivityDefinition,
+  getAvailableActivities,
+} from '../constants';
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
+import { chatCompletion } from '../util/llm';
+import { ActionCtx } from '../_generated/server';
+import { Id } from '../_generated/dataModel';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -90,6 +99,107 @@ export const agentGenerateMessage = internalAction({
   },
 });
 
+/**
+ * 使用 LLM 選擇活動
+ * @returns 選中的活動,或 null 表示需要回退到隨機選擇
+ */
+async function chooseActivityWithLLM(
+  ctx: ActionCtx,
+  worldId: Id<'worlds'>,
+  playerId: string,
+  agentId: string,
+): Promise<ActivityDefinition | null> {
+  let characterName = 'unknown';
+  try {
+    // 查詢 player description 獲取角色名稱
+    const playerDescription = await ctx.runQuery(internal.aiTown.game.getPlayerDescription, {
+      worldId,
+      playerId,
+    });
+
+    if (!playerDescription) {
+      console.warn(`Player description not found for ${playerId}`);
+      return null;
+    }
+
+    characterName = playerDescription.name;
+
+    // 查詢 agent description 獲取 identity 和 plan
+    const agentDescription = await ctx.runQuery(internal.aiTown.game.getAgentDescription, {
+      worldId,
+      agentId,
+    });
+
+    if (!agentDescription) {
+      console.warn(`Agent description not found for ${agentId}`);
+      return null;
+    }
+
+    const { identity, plan } = agentDescription;
+    const activities = getAvailableActivities(characterName);
+
+    // 建構活動列表
+    const activityList = activities
+      .map((a, i) => `${i + 1}. ${a.description} ${a.emoji}`)
+      .join('\n');
+
+    // 建構提示詞
+    const prompt = `You are ${characterName}.
+
+${identity}
+
+${plan}
+
+Choose ONE activity from the following list that best fits your character and current situation:
+
+${activityList}
+
+Respond with ONLY a JSON object in this exact format: {"activityIndex": number}
+
+Example: {"activityIndex": 3}`;
+
+    // 呼叫 LLM
+    const { content } = await chatCompletion({
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      max_tokens: 50,
+      temperature: 0.7,
+    });
+
+    console.log(`LLM response for ${characterName}: ${content}`);
+
+    // 解析回應,提取 activityIndex
+    const match = content.match(/\{\s*"activityIndex"\s*:\s*(\d+)\s*\}/);
+    if (match) {
+      const index = parseInt(match[1]) - 1; // 轉換為 0-based index
+      if (index >= 0 && index < activities.length) {
+        console.log(`LLM selected activity ${index + 1}: ${activities[index].description}`);
+        return activities[index];
+      } else {
+        console.warn(`LLM returned out-of-range index: ${index + 1}`);
+      }
+    } else {
+      console.warn(`Failed to parse LLM response: ${content}`);
+    }
+  } catch (error) {
+    console.error(`LLM activity selection failed for ${characterName}:`, error);
+  }
+
+  return null; // 回退到隨機選擇
+}
+
+/**
+ * 隨機選擇活動(作為 LLM 失敗時的備用方案)
+ * 使用舊版的全局活動列表確保向後兼容
+ */
+function selectRandomActivity(): ActivityDefinition {
+  return ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+}
+
 export const agentDoSomething = internalAction({
   args: {
     worldId: v.id('worlds'),
@@ -125,8 +235,20 @@ export const agentDoSomething = internalAction({
         });
         return;
       } else {
-        // TODO: have LLM choose the activity & emoji
-        const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+        // 嘗試使用 LLM 選擇活動
+        let activity = await chooseActivityWithLLM(
+          ctx,
+          args.worldId,
+          player.id,
+          agent.id,
+        );
+
+        // 如果 LLM 失敗,回退到隨機選擇
+        if (!activity) {
+          console.log(`Falling back to random activity selection for agent ${agent.id}`);
+          activity = selectRandomActivity();
+        }
+
         await sleep(Math.random() * 1000);
         await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,

@@ -393,3 +393,31 @@ export const saveWorld = internalMutation({
     await Game.saveDiff(ctx, args.worldId, args.worldDiff);
   },
 });
+
+export const getAgentDescription = internalQuery({
+  args: {
+    worldId: v.id('worlds'),
+    agentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const agentDescription = await ctx.db
+      .query('agentDescriptions')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('agentId', args.agentId))
+      .first();
+    return agentDescription;
+  },
+});
+
+export const getPlayerDescription = internalQuery({
+  args: {
+    worldId: v.id('worlds'),
+    playerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const playerDescription = await ctx.db
+      .query('playerDescriptions')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', args.playerId))
+      .first();
+    return playerDescription;
+  },
+});
