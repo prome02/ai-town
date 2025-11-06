@@ -76,3 +76,45 @@ export const ENGINE_ACTION_DURATION = 30000;
 export const MAX_PATHFINDS_PER_STEP = 16;
 
 export const DEFAULT_NAME = 'Me';
+
+// ========== LLM-驅動的活動選擇系統 ==========
+
+export interface ActivityDefinition {
+  description: string;
+  emoji: string;
+  duration: number;
+  category?: string;
+}
+
+// Lucky 的專屬活動 (MVP Week 1)
+export const LUCKY_ACTIVITIES: ActivityDefinition[] = [
+  { description: 'reading about space exploration', emoji: '🚀', duration: 60_000, category: 'intellectual' },
+  { description: 'telling space adventure stories', emoji: '✨', duration: 60_000, category: 'social' },
+  { description: 'observing squirrels', emoji: '🐿️', duration: 60_000, category: 'observational' },
+  { description: 'studying science history', emoji: '📚', duration: 60_000, category: 'intellectual' },
+  { description: 'cheese tasting', emoji: '🧀', duration: 60_000, category: 'culinary' },
+  { description: 'stargazing', emoji: '🌟', duration: 60_000, category: 'observational' },
+];
+
+// 通用活動 (所有角色)
+export const COMMON_ACTIVITIES: ActivityDefinition[] = [
+  { description: 'reading a book', emoji: '📖', duration: 60_000, category: 'intellectual' },
+  { description: 'daydreaming', emoji: '🤔', duration: 60_000, category: 'reflective' },
+  { description: 'taking a walk', emoji: '🚶', duration: 60_000, category: 'physical' },
+  { description: 'observing surroundings', emoji: '👀', duration: 60_000, category: 'observational' },
+  { description: 'resting', emoji: '😴', duration: 60_000, category: 'restorative' },
+];
+
+// 角色活動映射
+const CHARACTER_ACTIVITIES_MAP = new Map<string, ActivityDefinition[]>([
+  ['Lucky', LUCKY_ACTIVITIES],
+  // Week 2 將添加: Bob, Stella, Alice
+]);
+
+/**
+ * 獲取角色可用的活動列表 (專屬 + 通用)
+ */
+export function getAvailableActivities(characterName: string): ActivityDefinition[] {
+  const characterActivities = CHARACTER_ACTIVITIES_MAP.get(characterName) || [];
+  return [...characterActivities, ...COMMON_ACTIVITIES];
+}

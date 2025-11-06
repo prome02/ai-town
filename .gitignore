@@ -55,3 +55,25 @@ ai-town/
 
 # Claude Code 配置
 .claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+ENV/
+
+# LLM Roleplay Evaluator
+llm_roleplay_evaluator/.env
+llm_roleplay_evaluator/data/logs/
+llm_roleplay_evaluator/data/results/
+llm_roleplay_evaluator/__pycache__/
+
+# Test files
+test-json-mode.js
+test-all-models.js
+test_ollama_api.py

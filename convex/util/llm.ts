@@ -5,7 +5,7 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'gpt-oss:20b-cloud' as const,
+  chatModel: 'gpt-oss:20b-cloud' as const, // 通用對話模型,適合角色扮演
   embeddingModel: 'nomic-embed-text',
   embeddingDimension: 1024,
   stopWords: ['<|eot_id|>'],
