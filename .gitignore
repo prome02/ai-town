@@ -19,6 +19,7 @@ game/node_modules/
 # misc
 .DS_Store
 *.pem
+*.pdf
 
 # debug
 npm-debug.log*
