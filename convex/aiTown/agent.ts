@@ -247,7 +247,7 @@ export class Agent {
       );
     }
     const operationId = game.allocId('operations');
-    console.log(`Agent ${this.id} starting operation ${name} (${operationId})`);
+    console.log(`Agent ${String(this.id)} starting operation ${String(name)} (${String(operationId)})`);
     game.scheduleOperation(name, { operationId, ...args } as any);
     this.inProgressOperation = {
       name,
@@ -287,21 +287,26 @@ export type SerializedAgent = ObjectType<typeof serializedAgent>;
 type AgentOperations = typeof internal.aiTown.agentOperations;
 
 export async function runAgentOperation(ctx: MutationCtx, operation: string, args: any) {
-  let reference;
-  switch (operation) {
-    case 'agentRememberConversation':
-      reference = internal.aiTown.agentOperations.agentRememberConversation;
-      break;
-    case 'agentGenerateMessage':
-      reference = internal.aiTown.agentOperations.agentGenerateMessage;
-      break;
-    case 'agentDoSomething':
-      reference = internal.aiTown.agentOperations.agentDoSomething;
-      break;
-    default:
-      throw new Error(`Unknown operation: ${operation}`);
+  try {
+    let reference;
+    switch (operation) {
+      case 'agentRememberConversation':
+        reference = internal.aiTown.agentOperations.agentRememberConversation;
+        break;
+      case 'agentGenerateMessage':
+        reference = internal.aiTown.agentOperations.agentGenerateMessage;
+        break;
+      case 'agentDoSomething':
+        reference = internal.aiTown.agentOperations.agentDoSomething;
+        break;
+      default:
+        throw new Error(`Unknown operation: ${operation}`);
+    }
+    await ctx.scheduler.runAfter(0, reference, args);
+  } catch (error) {
+    console.error(`Error running agent operation ${operation}:`, error);
+    throw error; // 重新拋出錯誤讓上層處理
   }
-  await ctx.scheduler.runAfter(0, reference, args);
 }
 
 export const agentSendMessage = internalMutation({
@@ -316,20 +321,25 @@ export const agentSendMessage = internalMutation({
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert('messages', {
-      conversationId: args.conversationId,
-      author: args.playerId,
-      text: args.text,
-      messageUuid: args.messageUuid,
-      worldId: args.worldId,
-    });
-    await insertInput(ctx, args.worldId, 'agentFinishSendingMessage', {
-      conversationId: args.conversationId,
-      agentId: args.agentId,
-      timestamp: Date.now(),
-      leaveConversation: args.leaveConversation,
-      operationId: args.operationId,
-    });
+    try {
+      await ctx.db.insert('messages', {
+        conversationId: args.conversationId,
+        author: args.playerId,
+        text: args.text,
+        messageUuid: args.messageUuid,
+        worldId: args.worldId,
+      });
+      await insertInput(ctx, args.worldId, 'agentFinishSendingMessage', {
+        conversationId: args.conversationId,
+        agentId: args.agentId,
+        timestamp: Date.now(),
+        leaveConversation: args.leaveConversation,
+        operationId: args.operationId,
+      });
+    } catch (error) {
+      console.error(`Error sending message for agent ${args.agentId}:`, error);
+      throw error; // 重新拋出錯誤讓上層處理
+    }
   },
 });
 
@@ -342,7 +352,7 @@ export const findConversationCandidate = internalQuery({
   },
   handler: async (ctx, { now, worldId, player, otherFreePlayers }) => {
     const { position } = player;
-    const candidates = [];
+    const candidates: { id: string; position: { x: number; y: number } }[] = [];
 
     for (const otherPlayer of otherFreePlayers) {
       // Find the latest conversation we're both members of.

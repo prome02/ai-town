@@ -9,6 +9,7 @@
     "predev": "just convex dev --run init --until-success && convex dashboard",
     "dev:backend": "just convex dev --tail-logs",
     "dev:frontend": "vite --host ",
+    "dev:test": "vite --host --config vite.test.config.ts --force",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
     "le": "vite src/editor/"
   },

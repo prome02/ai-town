@@ -26,7 +26,30 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 - 💻️ [Windows Installation](#windows-installation)
 - 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
 - 👩‍💻 [Deploying](#deploy-the-app)
+- 📚 [Documentation](#documentation)
 - 🏆 [Credits](#credits)
+
+## Documentation
+
+專案文件已整理至 [docs/](docs/) 資料夾:
+
+### 開發與測試
+- [ARCHITECTURE.md](docs/development/ARCHITECTURE.md) - 系統架構說明
+- [MVP_EXECUTION_PLAN.md](docs/development/MVP_EXECUTION_PLAN.md) - MVP 開發計劃
+- [TESTING.md](docs/testing/TESTING.md) - 測試流程指南
+- [LLM_TEST_GUIDE.md](docs/testing/LLM_TEST_GUIDE.md) - LLM 測試工具使用指南
+
+### 環境設定
+- [ENV_SETUP_GUIDE.md](docs/setup/ENV_SETUP_GUIDE.md) - 環境變數設定說明
+- [STARTUP_SCRIPTS_GUIDE.md](docs/setup/STARTUP_SCRIPTS_GUIDE.md) - 啟動腳本使用指南
+
+### Convex 函式開發
+- [CONVEX_FUNCTIONS_GUIDE.md](convex/CONVEX_FUNCTIONS_GUIDE.md) - Convex 函式開發指南
+
+### 改進計劃
+- [AI-Town 改進計劃總覽](docs/AI-Town_改進計劃_階段一_基礎優化_總覽.md)
+- [角色設定說明](docs/角色設定說明.md)
+- 更多改進計劃文件請見 [docs/](docs/) 資料夾
 
 ## Stack
 

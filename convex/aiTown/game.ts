@@ -272,101 +272,106 @@ export class Game extends AbstractGame {
   }
 
   static async saveDiff(ctx: MutationCtx, worldId: Id<'worlds'>, diff: GameStateDiff) {
-    const existingWorld = await ctx.db.get(worldId);
-    if (!existingWorld) {
-      throw new Error(`No world found with id ${worldId}`);
-    }
-    const newWorld = diff.world;
-    // Archive newly deleted players, conversations, and agents.
-    for (const player of existingWorld.players) {
-      if (!newWorld.players.some((p) => p.id === player.id)) {
-        await ctx.db.insert('archivedPlayers', { worldId, ...player });
+    try {
+      const existingWorld = await ctx.db.get(worldId);
+      if (!existingWorld) {
+        throw new Error(`No world found with id ${worldId}`);
       }
-    }
-    for (const conversation of existingWorld.conversations) {
-      if (!newWorld.conversations.some((c) => c.id === conversation.id)) {
-        const participants = conversation.participants.map((p) => p.playerId);
-        const archivedConversation = {
-          worldId,
-          id: conversation.id,
-          created: conversation.created,
-          creator: conversation.creator,
-          ended: Date.now(),
-          lastMessage: conversation.lastMessage,
-          numMessages: conversation.numMessages,
-          participants,
-        };
-        await ctx.db.insert('archivedConversations', archivedConversation);
-        for (let i = 0; i < participants.length; i++) {
-          for (let j = 0; j < participants.length; j++) {
-            if (i == j) {
-              continue;
+      const newWorld = diff.world;
+      // Archive newly deleted players, conversations, and agents.
+      for (const player of existingWorld.players) {
+        if (!newWorld.players.some((p) => p.id === player.id)) {
+          await ctx.db.insert('archivedPlayers', { worldId, ...player });
+        }
+      }
+      for (const conversation of existingWorld.conversations) {
+        if (!newWorld.conversations.some((c) => c.id === conversation.id)) {
+          const participants = conversation.participants.map((p) => p.playerId);
+          const archivedConversation = {
+            worldId,
+            id: conversation.id,
+            created: conversation.created,
+            creator: conversation.creator,
+            ended: Date.now(),
+            lastMessage: conversation.lastMessage,
+            numMessages: conversation.numMessages,
+            participants,
+          };
+          await ctx.db.insert('archivedConversations', archivedConversation);
+          for (let i = 0; i < participants.length; i++) {
+            for (let j = 0; j < participants.length; j++) {
+              if (i == j) {
+                continue;
+              }
+              const player1 = participants[i];
+              const player2 = participants[j];
+              await ctx.db.insert('participatedTogether', {
+                worldId,
+                conversationId: conversation.id,
+                player1,
+                player2,
+                ended: Date.now(),
+              });
             }
-            const player1 = participants[i];
-            const player2 = participants[j];
-            await ctx.db.insert('participatedTogether', {
-              worldId,
-              conversationId: conversation.id,
-              player1,
-              player2,
-              ended: Date.now(),
-            });
           }
         }
       }
-    }
-    for (const conversation of existingWorld.agents) {
-      if (!newWorld.agents.some((a) => a.id === conversation.id)) {
-        await ctx.db.insert('archivedAgents', { worldId, ...conversation });
+      for (const conversation of existingWorld.agents) {
+        if (!newWorld.agents.some((a) => a.id === conversation.id)) {
+          await ctx.db.insert('archivedAgents', { worldId, ...conversation });
+        }
       }
-    }
-    // Update the world state.
-    await ctx.db.replace(worldId, newWorld);
+      // Update the world state.
+      await ctx.db.replace(worldId, newWorld);
 
-    // Update the larger description tables if they changed.
-    const { playerDescriptions, agentDescriptions, worldMap } = diff;
-    if (playerDescriptions) {
-      for (const description of playerDescriptions) {
-        const existing = await ctx.db
-          .query('playerDescriptions')
-          .withIndex('worldId', (q) =>
-            q.eq('worldId', worldId).eq('playerId', description.playerId),
-          )
-          .unique();
-        if (existing) {
-          await ctx.db.replace(existing._id, { worldId, ...description });
-        } else {
-          await ctx.db.insert('playerDescriptions', { worldId, ...description });
+      // Update the larger description tables if they changed.
+      const { playerDescriptions, agentDescriptions, worldMap } = diff;
+      if (playerDescriptions) {
+        for (const description of playerDescriptions) {
+          const existing = await ctx.db
+            .query('playerDescriptions')
+            .withIndex('worldId', (q) =>
+              q.eq('worldId', worldId).eq('playerId', description.playerId),
+            )
+            .unique();
+          if (existing) {
+            await ctx.db.replace(existing._id, { worldId, ...description });
+          } else {
+            await ctx.db.insert('playerDescriptions', { worldId, ...description });
+          }
         }
       }
-    }
-    if (agentDescriptions) {
-      for (const description of agentDescriptions) {
-        const existing = await ctx.db
-          .query('agentDescriptions')
-          .withIndex('worldId', (q) => q.eq('worldId', worldId).eq('agentId', description.agentId))
-          .unique();
-        if (existing) {
-          await ctx.db.replace(existing._id, { worldId, ...description });
-        } else {
-          await ctx.db.insert('agentDescriptions', { worldId, ...description });
+      if (agentDescriptions) {
+        for (const description of agentDescriptions) {
+          const existing = await ctx.db
+            .query('agentDescriptions')
+            .withIndex('worldId', (q) => q.eq('worldId', worldId).eq('agentId', description.agentId))
+            .unique();
+          if (existing) {
+            await ctx.db.replace(existing._id, { worldId, ...description });
+          } else {
+            await ctx.db.insert('agentDescriptions', { worldId, ...description });
+          }
         }
       }
-    }
-    if (worldMap) {
-      const existing = await ctx.db
-        .query('maps')
-        .withIndex('worldId', (q) => q.eq('worldId', worldId))
-        .unique();
-      if (existing) {
-        await ctx.db.replace(existing._id, { worldId, ...worldMap });
-      } else {
-        await ctx.db.insert('maps', { worldId, ...worldMap });
+      if (worldMap) {
+        const existing = await ctx.db
+          .query('maps')
+          .withIndex('worldId', (q) => q.eq('worldId', worldId))
+          .unique();
+        if (existing) {
+          await ctx.db.replace(existing._id, { worldId, ...worldMap });
+        } else {
+          await ctx.db.insert('maps', { worldId, ...worldMap });
+        }
       }
-    }
-    // Start the desired agent operations.
-    for (const operation of diff.agentOperations) {
-      await runAgentOperation(ctx, operation.name, operation.args);
+      // Start the desired agent operations.
+      for (const operation of diff.agentOperations) {
+        await runAgentOperation(ctx, operation.name, operation.args);
+      }
+    } catch (error) {
+      console.error(`Error saving diff for world ${worldId}:`, error);
+      throw error; // 重新拋出錯誤讓上層處理
     }
   }
 }

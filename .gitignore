@@ -74,6 +74,12 @@ llm_roleplay_evaluator/data/results/
 llm_roleplay_evaluator/__pycache__/
 
 # Test files
-test-json-mode.js
-test-all-models.js
-test_ollama_api.py
+test*.js
+test*.html
+test*.py
+*.test.js
+*.spec.js
+
+# Temporary files
+nul
+*.tmp

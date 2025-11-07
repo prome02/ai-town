@@ -78,24 +78,66 @@ export const agentGenerateMessage = internalAction({
       default:
         assertNever(args.type);
     }
-    const text = await completionFn(
-      ctx,
-      args.worldId,
-      args.conversationId as GameId<'conversations'>,
-      args.playerId as GameId<'players'>,
-      args.otherPlayerId as GameId<'players'>,
-    );
+    let text: string;
+    try {
+      text = await completionFn(
+        ctx,
+        args.worldId,
+        args.conversationId as GameId<'conversations'>,
+        args.playerId as GameId<'players'>,
+        args.otherPlayerId as GameId<'players'>,
+      );
+    } catch (error: any) {
+      console.error(`Error generating message for agent ${args.agentId}:`, error);
+      
+      // 根據錯誤類型提供更具體的錯誤訊息
+      if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        console.error('LLM API 網路連線失敗:', error.message);
+      } else if (error.status === 429) {
+        console.error('LLM API 限速錯誤:', error.message);
+      } else if (error.status >= 500) {
+        console.error('LLM 服務端錯誤:', error.status, error.message);
+      } else if (error.message && error.message.includes('timed out')) {
+        console.error('操作逾時:', error.message);
+      } else if (error.message && error.message.includes('not found')) {
+        console.error('查詢資料不存在:', error.message);
+      } else {
+        console.error('未預期的錯誤:', error);
+      }
+      
+      // 提供默認回退消息以避免UnhandledPromiseRejection
+      switch (args.type) {
+        case 'start':
+          text = `Hi, how are you doing?`;
+          break;
+        case 'continue':
+          text = 'I see, that makes sense.';
+          break;
+        case 'leave':
+          text = 'I need to go now, talk to you later!';
+          break;
+        default:
+          text = 'Hello!';
+      }
+    }
 
-    await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
-      worldId: args.worldId,
-      conversationId: args.conversationId,
-      agentId: args.agentId,
-      playerId: args.playerId,
-      text,
-      messageUuid: args.messageUuid,
-      leaveConversation: args.type === 'leave',
-      operationId: args.operationId,
-    });
+    try {
+      await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
+        worldId: args.worldId,
+        conversationId: args.conversationId,
+        agentId: args.agentId,
+        playerId: args.playerId,
+        text,
+        messageUuid: args.messageUuid,
+        leaveConversation: args.type === 'leave',
+        operationId: args.operationId,
+      });
+    } catch (error) {
+      console.error(`Error sending message for agent ${args.agentId}:`, error);
+      // 不再重新拋出錯誤，避免 UnhandledPromiseRejection
+      // 而是記錄錯誤並讓操作正常完成
+      return;
+    }
   },
 });
 
@@ -159,16 +201,23 @@ Respond with ONLY a JSON object in this exact format: {"activityIndex": number}
 Example: {"activityIndex": 3}`;
 
     // 呼叫 LLM
-    const { content } = await chatCompletion({
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      max_tokens: 50,
-      temperature: 0.7,
-    });
+    let content: string;
+    try {
+      const result = await chatCompletion({
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 50,
+        temperature: 0.7,
+      });
+      content = result.content;
+    } catch (error) {
+      console.error(`LLM call failed for ${characterName}:`, error);
+      return null; // 回退到隨機選擇
+    }
 
     console.log(`LLM response for ${characterName}: ${content}`);
 
@@ -236,12 +285,18 @@ export const agentDoSomething = internalAction({
         return;
       } else {
         // 嘗試使用 LLM 選擇活動
-        let activity = await chooseActivityWithLLM(
-          ctx,
-          args.worldId,
-          player.id,
-          agent.id,
-        );
+        let activity;
+        try {
+          activity = await chooseActivityWithLLM(
+            ctx,
+            args.worldId,
+            player.id,
+            agent.id,
+          );
+        } catch (error) {
+          console.error(`Error choosing activity with LLM for agent ${agent.id}:`, error);
+          activity = null;
+        }
 
         // 如果 LLM 失敗,回退到隨機選擇
         if (!activity) {

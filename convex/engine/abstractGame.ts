@@ -136,21 +136,26 @@ export async function engineInsertInput(
   name: string,
   args: any,
 ): Promise<Id<'inputs'>> {
-  const now = Date.now();
-  const prevInput = await ctx.db
-    .query('inputs')
-    .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
-    .order('desc')
-    .first();
-  const number = prevInput ? prevInput.number + 1 : 0;
-  const inputId = await ctx.db.insert('inputs', {
-    engineId,
-    number,
-    name,
-    args,
-    received: now,
-  });
-  return inputId;
+  try {
+    const now = Date.now();
+    const prevInput = await ctx.db
+      .query('inputs')
+      .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
+      .order('desc')
+      .first();
+    const number = prevInput ? prevInput.number + 1 : 0;
+    const inputId = await ctx.db.insert('inputs', {
+      engineId,
+      number,
+      name,
+      args,
+      received: now,
+    });
+    return inputId;
+  } catch (error) {
+    console.error(`Error inserting input ${name} for engine ${engineId}:`, error);
+    throw error; // 重新拋出錯誤讓上層處理
+  }
 }
 
 export const loadInputs = internalQuery({
@@ -175,25 +180,30 @@ export async function applyEngineUpdate(
   engineId: Id<'engines'>,
   update: EngineUpdate,
 ) {
-  const engine = await loadEngine(ctx.db, engineId, update.expectedGenerationNumber);
-  if (
-    engine.currentTime &&
-    update.engine.currentTime &&
-    update.engine.currentTime < engine.currentTime
-  ) {
-    throw new Error('Time moving backwards');
-  }
-  await ctx.db.replace(engine._id, update.engine);
+  try {
+    const engine = await loadEngine(ctx.db, engineId, update.expectedGenerationNumber);
+    if (
+      engine.currentTime &&
+      update.engine.currentTime &&
+      update.engine.currentTime < engine.currentTime
+    ) {
+      throw new Error('Time moving backwards');
+    }
+    await ctx.db.replace(engine._id, update.engine);
 
-  for (const completedInput of update.completedInputs) {
-    const input = await ctx.db.get(completedInput.inputId);
-    if (!input) {
-      throw new Error(`Input ${completedInput.inputId} not found`);
+    for (const completedInput of update.completedInputs) {
+      const input = await ctx.db.get(completedInput.inputId);
+      if (!input) {
+        throw new Error(`Input ${completedInput.inputId} not found`);
+      }
+      if (input.returnValue) {
+        throw new Error(`Input ${completedInput.inputId} already completed`);
+      }
+      input.returnValue = completedInput.returnValue;
+      await ctx.db.replace(input._id, input);
     }
-    if (input.returnValue) {
-      throw new Error(`Input ${completedInput.inputId} already completed`);
-    }
-    input.returnValue = completedInput.returnValue;
-    await ctx.db.replace(input._id, input);
+  } catch (error) {
+    console.error(`Error applying engine update for engine ${engineId}:`, error);
+    throw error; // 重新拋出錯誤讓上層處理
   }
 }
