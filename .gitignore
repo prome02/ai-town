@@ -83,3 +83,6 @@ test*.py
 # Temporary files
 nul
 *.tmp
+
+# Environment backup files
+.env*.backup

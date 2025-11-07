@@ -24,7 +24,7 @@ docs/
 ```
 
 ### 核心目錄
-- `convex/` - Convex 後端函式 (參考 `convex/CONVEX_FUNCTIONS_GUIDE.md`)
+- `convex/` - Convex 後端函式 (參考 `docs/development/CONVEX_FUNCTIONS_GUIDE.md`)
 - `src/` - React 前端程式碼
 - `data/` - 角色和世界資料
 - `docs/` - 所有專案文件

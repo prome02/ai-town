@@ -44,7 +44,7 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 - [STARTUP_SCRIPTS_GUIDE.md](docs/setup/STARTUP_SCRIPTS_GUIDE.md) - 啟動腳本使用指南
 
 ### Convex 函式開發
-- [CONVEX_FUNCTIONS_GUIDE.md](convex/CONVEX_FUNCTIONS_GUIDE.md) - Convex 函式開發指南
+- [CONVEX_FUNCTIONS_GUIDE.md](docs/development/CONVEX_FUNCTIONS_GUIDE.md) - Convex 函式開發指南
 
 ### 改進計劃
 - [AI-Town 改進計劃總覽](docs/AI-Town_改進計劃_階段一_基礎優化_總覽.md)

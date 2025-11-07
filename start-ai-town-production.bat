@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================
-REM 開發/測試模式快捷啟動腳本
-REM 此腳本調用 start-ai-town.bat dev
+REM 正式/生產模式快捷啟動腳本
+REM 此腳本調用 start-ai-town.bat prod
 REM ============================================================
 
-call "%~dp0start-ai-town.bat" dev
+call "%~dp0start-ai-town.bat" prod
