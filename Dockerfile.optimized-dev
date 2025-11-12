@@ -1,0 +1,59 @@
+# =====================================================
+# 開發環境優化版 Dockerfile (不執行 build)
+# =====================================================
+FROM node:18-slim AS base
+
+# 安裝運行時必需的依賴
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    python3 \
+    unzip \
+    iproute2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# 下載 Convex Local Backend
+RUN curl -L -o /tmp/convex-backend.zip \
+    https://github.com/get-convex/convex-backend/releases/download/precompiled-2025-10-29-a78fd1e/convex-local-backend-x86_64-unknown-linux-gnu.zip && \
+    unzip /tmp/convex-backend.zip -d /tmp/ && \
+    chmod +x /tmp/convex-local-backend && \
+    mv /tmp/convex-local-backend /usr/local/bin/ && \
+    rm /tmp/convex-backend.zip
+
+# 設置工作目錄
+WORKDIR /usr/src/app
+
+# 只複製依賴文件先安裝 (利用 Docker cache)
+COPY package*.json ./
+
+# 安裝依賴 (包含開發依賴)
+RUN npm ci
+
+# 複製應用程序文件
+COPY convex ./convex
+COPY data ./data
+COPY public ./public
+COPY src ./src
+COPY docker-entrypoint.sh ./
+COPY vite.config.ts ./
+COPY index.html ./
+COPY postcss.config.js ./
+COPY tailwind.config.js ./
+
+# 給予啟動腳本執行權限
+RUN chmod +x /usr/src/app/docker-entrypoint.sh
+
+# 創建數據目錄
+RUN mkdir -p /usr/src/app/data
+
+# 暴露必要的端口
+EXPOSE 5173 3210
+
+# 健康檢查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:5173/ || exit 1
+
+# 使用本地模式啟動腳本
+CMD ["/usr/src/app/docker-entrypoint.sh"]

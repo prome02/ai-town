@@ -193,7 +193,12 @@ You can then create a fresh world with `init`.
 
 ```bash
 just convex run init
+
+# 推薦使用 --until-success 標誌 (會自動重試)
+just convex dev --run init --until-success
 ```
+
+**注意**: Init 過程通常只需 **2-5 秒**,主要執行資料庫結構初始化。**Init 本身不呼叫 LLM API**,所以不需要等待 Ollama 載入模型。LLM 只在遊戲引擎運行後才會被使用（用於 Agent 決策、對話生成等）。
 
 **To clear all databases**
 

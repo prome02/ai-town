@@ -197,6 +197,48 @@ docker-compose logs --tail=50 ai-town
 - Convex 後端啟動失敗 (檢查參數是否正確)
 - 端口衝突 (檢查 3210/5173 是否被佔用)
 
+### 問題 4: Agent 不會移動
+
+**症狀**:
+- AI Town 成功啟動，但畫面中的 agent 角色不會移動
+- 遊戲迴圈似乎沒有正常運行
+
+**可能原因**:
+- LLM 服務無法訪問，導致 agent 無法做出決策
+- Ollama 服務未運行或容器無法訪問宿主機上的 Ollama 服務
+
+**解決方案**:
+1. 確保宿主機上的 Ollama 服務正在運行：
+   ```bash
+   # 檢查 Ollama 服務狀態
+   ollama list
+   
+   # 如果服務未運行，啟動 Ollama 服務
+   # 在 Windows 上，Ollama 通常會作為服務自動啟動
+   ```
+
+2. 確保所需的模型已拉取：
+   ```bash
+   ollama pull qwen2.5:14b
+   ollama pull nomic-embed-text
+   ```
+
+3. 檢查 `docker-compose.yml` 配置是否包含以下環境變量：
+   ```yaml
+   environment:
+     - LLM_API_URL=http://host.docker.internal:11434
+   extra_hosts:
+     - "host.docker.internal:host-gateway"
+   ```
+
+4. 重新啟動容器：
+   ```bash
+   docker-compose down
+   docker-compose up -d
+   ```
+
+5. 詳細配置說明請參考 [Docker 與本地 Ollama 服務整合指南](DOCKER_OLLAMA_INTEGRATION.md)
+
 ---
 
 ## 技術細節
@@ -288,6 +330,7 @@ volumes:
 - [環境變數設定](ENV_SETUP_GUIDE.md)
 - [啟動腳本指南](STARTUP_SCRIPTS_GUIDE.md)
 - [測試流程](../testing/TESTING.md)
+- [Docker 與本地 Ollama 服務整合指南](DOCKER_OLLAMA_INTEGRATION.md)
 
 ---
 

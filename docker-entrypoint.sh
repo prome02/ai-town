@@ -10,6 +10,11 @@ echo "  🚀 AI Town Docker 正式環境啟動中..."
 echo "============================================================"
 echo ""
 
+# 載入 NVM 環境變數
+export NVM_DIR="/root/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+nvm use 18 > /dev/null 2>&1 || true
+
 # 設定變數
 PROJECT_DIR="/usr/src/app"
 ENV_FILE="$PROJECT_DIR/.env.local"
@@ -108,16 +113,12 @@ echo ""
 echo "[4/6] 🔄 啟動 Convex 函數同步"
 echo ""
 
-echo "▶️  部署 Convex 函數到本地後端..."
-npx convex deploy --admin-key "$ADMIN_KEY" --url "$LOCAL_CONVEX_URL" > /var/log/convex-deploy.log 2>&1
-
-if [ $? -eq 0 ]; then
-    echo "✅ Convex 函數部署成功"
-else
-    echo "❌ Convex 函數部署失敗"
-    echo "📋 查看日誌: cat /var/log/convex-deploy.log"
-    cat /var/log/convex-deploy.log
-fi
+echo "▶️  在背景部署 Convex 函數到本地後端..."
+nohup npx convex deploy --admin-key "$ADMIN_KEY" --url "$LOCAL_CONVEX_URL" > /var/log/convex-deploy.log 2>&1 &
+DEPLOY_PID=$!
+echo "   Convex 函數部署已在背景啟動 (PID: $DEPLOY_PID)"
+echo "   🔍 部署日誌: /var/log/convex-deploy.log"
+echo ""
 
 echo "▶️  啟動 Convex Dev (監聽函數變更)..."
 nohup npx convex dev --admin-key "$ADMIN_KEY" --url "$LOCAL_CONVEX_URL" > /var/log/convex-dev.log 2>&1 &
@@ -171,6 +172,7 @@ echo ""
 echo "$BACKEND_PID" > /var/run/convex-backend.pid
 echo "$CONVEX_DEV_PID" > /var/run/convex-dev.pid
 echo "$VITE_PID" > /var/run/vite.pid
+echo "$DEPLOY_PID" > /var/run/convex-deploy.pid
 
 # ============================================================
 # 保持容器運行並監控進程
@@ -189,6 +191,9 @@ cleanup() {
     if [ -f /var/run/convex-dev.pid ]; then
         kill $(cat /var/run/convex-dev.pid) 2>/dev/null || true
     fi
+    if [ -f /var/run/convex-deploy.pid ]; then
+        kill $(cat /var/run/convex-deploy.pid) 2>/dev/null || true
+    fi
     if [ -f /var/run/convex-backend.pid ]; then
         kill $(cat /var/run/convex-backend.pid) 2>/dev/null || true
     fi
@@ -206,6 +211,22 @@ while true; do
         if ! kill -0 $(cat /var/run/convex-backend.pid) 2>/dev/null; then
             echo "❌ Convex 後端進程已停止"
             exit 1
+        fi
+    fi
+    
+    # 檢查部署進程是否還在運行（如果仍在運行）
+    if [ -f /var/run/convex-deploy.pid ]; then
+        if ! kill -0 $(cat /var/run/convex-deploy.pid) 2>/dev/null; then
+            # 部署進程已完成，移除 PID 文件
+            rm -f /var/run/convex-deploy.pid
+            # 檢查部署結果
+            if [ -f /var/log/convex-deploy.log ]; then
+                if grep -q "error\|Error\|ERROR" /var/log/convex-deploy.log; then
+                    echo "⚠️  Convex 函數部署完成但有錯誤，請檢查日誌: /var/log/convex-deploy.log"
+                else
+                    echo "✅ Convex 函數部署成功完成"
+                fi
+            fi
         fi
     fi
 
