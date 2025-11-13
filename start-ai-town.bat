@@ -52,7 +52,24 @@ REM 設定變數
 REM ============================================================
 set "PROJECT_DIR=%~dp0"
 set "ENV_FILE=%PROJECT_DIR%.env.local"
-set "CONVEX_BACKEND_DIR=C:\Users\prome\Downloads\convex-local-backend-x86_64-pc-windows-msvc"
+
+REM 動態取得下載資料夾位置
+for /f "usebackq tokens=2,*" %%a in (
+    `reg query "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "{374DE290-123F-4565-9164-39C4925E467B}" 2^>nul`
+) do (
+    set "downloads_folder=%%b"
+)
+
+REM 檢查是否取得下載資料夾路徑
+if defined downloads_folder (
+    set "CONVEX_BACKEND_DIR=%downloads_folder%\convex-local-backend-x86_64-pc-windows-msvc"
+) else (
+    echo ❌ 錯誤: 無法取得下載資料夾位置
+    echo    請檢查註冊機碼或手動設定 CONVEX_BACKEND_DIR
+    set /a ERROR_COUNT+=1
+    goto :error_summary
+)
+
 set "CONVEX_BACKEND_EXE=%CONVEX_BACKEND_DIR%\convex-local-backend.exe"
 set "LOCAL_CONVEX_URL=http://127.0.0.1:3210"
 set "ADMIN_KEY=0135d8598650f8f5cb0f30c34ec2e2bb62793bc28717c8eb6fb577996d50be5f4281b59181095065c5d0f86a2c31ddbe9b597ec62b47ded69782cd"

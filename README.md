@@ -34,19 +34,23 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 專案文件已整理至 [docs/](docs/) 資料夾:
 
 ### 開發與測試
+
 - [ARCHITECTURE.md](docs/development/ARCHITECTURE.md) - 系統架構說明
 - [MVP_EXECUTION_PLAN.md](docs/development/MVP_EXECUTION_PLAN.md) - MVP 開發計劃
 - [TESTING.md](docs/testing/TESTING.md) - 測試流程指南
 - [LLM_TEST_GUIDE.md](docs/testing/LLM_TEST_GUIDE.md) - LLM 測試工具使用指南
 
 ### 環境設定
+
 - [ENV_SETUP_GUIDE.md](docs/setup/ENV_SETUP_GUIDE.md) - 環境變數設定說明
 - [STARTUP_SCRIPTS_GUIDE.md](docs/setup/STARTUP_SCRIPTS_GUIDE.md) - 啟動腳本使用指南
 
 ### Convex 函式開發
+
 - [CONVEX_FUNCTIONS_GUIDE.md](docs/development/CONVEX_FUNCTIONS_GUIDE.md) - Convex 函式開發指南
 
 ### 改進計劃
+
 - [AI-Town 改進計劃總覽](docs/AI-Town_改進計劃_階段一_基礎優化_總覽.md)
 - [角色設定說明](docs/角色設定說明.md)
 - 更多改進計劃文件請見 [docs/](docs/) 資料夾
@@ -237,6 +241,7 @@ Modify your `package.json` file to add the `--host` option to your front-end ser
 ### Launching Docker Compose
 
 Run the following command to launch Docker Compose:
+
 ```sh
 docker-compose up --build
 ```
@@ -246,6 +251,7 @@ Once completed, you can close the terminal.
 ### Launching an Interactive Docker Terminal
 
 In another terminal, still in the `aitown` directory, launch an interactive Docker terminal:
+
 ```bash
 docker-compose exec ai-town /bin/bash
 ```
@@ -253,29 +259,31 @@ docker-compose exec ai-town /bin/bash
 ### Running Locally
 
 1. Download and unzip the local Convex backend:
-    ```bash
-    curl -L -O https://github.com/get-convex/convex-backend/releases/download/precompiled-2024-06-28-91981ab/convex-local-backend-x86_64-unknown-linux-gnu.zip
-    unzip convex-local-backend-x86_64-unknown-linux-gnu.zip
-    ```
-   
+
+   ```bash
+   curl -L -O https://github.com/get-convex/convex-backend/releases/download/precompiled-2024-06-28-91981ab/convex-local-backend-x86_64-unknown-linux-gnu.zip
+   unzip convex-local-backend-x86_64-unknown-linux-gnu.zip
+   ```
 2. Verify the `convex-local-backend` file is in the directory, then remove the zip file:
-    ```bash
-    rm convex-local-backend-x86_64-unknown-linux-gnu.zip
-    ```
 
+   ```bash
+   rm convex-local-backend-x86_64-unknown-linux-gnu.zip
+   ```
 3. Make the file executable:
-    ```bash
-    chmod +x /usr/src/app/convex-local-backend
-    ```
 
+   ```bash
+   chmod +x /usr/src/app/convex-local-backend
+   ```
 4. Launch the Convex backend server:
-    ```bash
-    ./convex-local-backend
-    ```
+
+   ```bash
+   ./convex-local-backend
+   ```
 
 ### Relaunching an Interactive Docker Terminal for aitown server
 
 In another terminal, in the `aitown` directory, relaunch:
+
 ```sh
 docker-compose exec ai-town /bin/bash
 ```
@@ -292,6 +300,7 @@ socat TCP-LISTEN:11434,fork TCP:$HOST_IP:11434 &
 ### Testing the Connection
 
 Test the connection:
+
 ```bash
 curl http://localhost:11434/
 ```
@@ -301,28 +310,30 @@ If it says "Ollama is running", it's good!
 ### Starting Services
 
 Make sure Convex knows where to find Ollama (to skip a random mysterious bug ...):
+
 ```bash
 just convex env set OLLAMA_HOST http://localhost:11434
 ```
 
 Update the browser list:
+
 ```bash
 npx update-browserslist-db@latest
 ```
 
 Launch AI Town:
+
 ```bash
 npm run dev
 ```
 
 ### For relaunching
-launch container then 
+
+launch container then
 Simply open two terminal in your AI-town folder with docker-compose exec ai-town /bin/bash
 
 Launch the Convex backend server:
-    ```bash
-    ./convex-local-backend
-    ```
+    ``bash     ./convex-local-backend     ``
 And in the second terminal simply Configuring Socat, Launch AI Town.
 
 ## Windows Installation
@@ -351,7 +362,7 @@ NVM (Node Version Manager) helps manage multiple versions of Node.js. Install NV
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
     source ~/.bashrc
     nvm install 18
-    nvm use 18
+    nvm use 18init
 
 ### 4. Install Python and Pip
 
@@ -435,25 +446,21 @@ Finally, launch AI Town:
 
 Visit `http://localhost:5173` in your browser to see AI Town in action.
 
-### Relaunching AI Town on windows WSL : 
+### Relaunching AI Town on windows WSL :
 
 If you need to restart the services:
 
 1. Ensure `socat` is running:
 
-    socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
-
+   socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
 2. Launch Convex:
 
-    ./convex-local-backend
+   ./convex-local-backend
 
-In another terminal : 
+In another terminal :
 3. Launch AI Town:
 
     npm run dev
-
-
-
 
 ## Customize your own simulation
 
@@ -464,7 +471,6 @@ This is because character data is sent to Convex on the initial load.
 However, beware that `just convex run testing:wipeAllTables` WILL wipe all of your data.
 
 1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [characters.ts](./data/characters.ts). You can start by changing character descriptions.
-
 2. Updating spritesheets: in `data/characters.ts`, you will see this code:
 
 ```ts
@@ -623,7 +629,7 @@ traffic. see ollama.ai for more details.
 
 ## Credits
 
-- All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/).
+- All interactions, background music and rendering on the `<Game/>` component in the project are powered by [PixiJS](https://pixijs.com/).
 - Tilesheet:
   - https://opengameart.org/content/16x16-game-assets by George Bailey
   - https://opengameart.org/content/16x16-rpg-tileset by hilau

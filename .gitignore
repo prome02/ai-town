@@ -86,3 +86,5 @@ nul
 
 # Environment backup files
 .env*.backup
+
+.env.local
