@@ -1,0 +1,79 @@
+# Git 版本控制
+.git
+.gitignore
+.gitattributes
+
+# Docker 相關檔案
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+*.tar
+*.tar.gz
+ai-town-image.tar
+
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.pnpm-debug.log*
+
+# 開發環境
+.env
+.env.local
+.env.*.local
+*.local
+
+# 編輯器與 IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 測試與覆蓋率
+coverage
+*.lcov
+.nyc_output
+
+# 建置輸出 (注意: dist 在 builder stage 需要)
+# dist
+build
+.cache
+.parcel-cache
+
+# 日誌
+logs
+*.log
+
+# 臨時檔案
+*.tmp
+*.temp
+.temp
+.tmp
+
+# Convex 本地資料
+convex_local_backend.sqlite3
+convex_local_backend.sqlite3-*
+convex_local_storage/
+
+# 文件檔案 (可選,視需求而定)
+docs/
+*.md
+!README.md
+
+# 開發腳本 (保留 docker-entrypoint.sh)
+*.bat
+start-*.bat
+stop-*.bat
+switch-*.bat
+# 允許 docker-entrypoint.sh
+!docker-entrypoint.sh
+
+# 其他 (保留 tsconfig.json 用於運行時型別檢查)
+.prettierrc
+.eslintrc*
+# tsconfig*.json  # 保留給 Docker
+jest.config.*

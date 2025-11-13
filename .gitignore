@@ -87,4 +87,15 @@ nul
 # Environment backup files
 .env*.backup
 
-.env.local
+# Docker 映像與部署包
+*.tar
+*.tar.gz
+*.tar.bz2
+*.zip
+ai-town-image*
+ai-town-deployment-package/
+*.sha256
+
+# Docker volumes (如果在專案目錄內)
+database/
+convex_local_storage/

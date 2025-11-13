@@ -1,17 +1,40 @@
-# version: '3.8'
+version: '3.8'
 
 services:
   ai-town:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      # 使用原始未優化的 Dockerfile,因為專案需要建置工具
+    container_name: ai-town-production
     ports:
-      - "5173:5173"
-      - "3210:3210" # WebSocket port ... In mysterious ways, this port make the magic happen !
+      - "5173:5173"      # Vite 前端
+      - "3210:3210"      # Convex 本地後端 WebSocket
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
       - ./data:/usr/src/app/data
+      # 資料庫檔案使用 named volume
+      - ai-town-database:/usr/src/app/database
+    environment:
+      - NODE_ENV=production
+      - VITE_CONVEX_URL=http://127.0.0.1:3210
+      # 添加 Ollama URL 環境變量
+      - LLM_API_URL=http://host.docker.internal:11434
     networks:
       - ai-town-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 添加這一行以確保網絡訪問
+
+volumes:
+  ai-town-database:
 
 networks:
   ai-town-network:
