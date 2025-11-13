@@ -6,10 +6,15 @@ setlocal EnableDelayedExpansion
 :: AI Town Docker 映像匯入腳本
 :: =====================================================
 
+:: 切換到部署包根目錄（父目錄）
+cd /d "%~dp0.."
+
 echo.
 echo =====================================================
 echo   AI Town Docker 映像匯入工具
 echo =====================================================
+echo.
+echo 📂 工作目錄: %CD%
 echo.
 
 :: 檢查 Docker 是否安裝
@@ -52,7 +57,9 @@ if exist "%IMAGE_FILE%.sha256" (
     echo 🔍 驗證檔案完整性...
     certutil -hashfile "%IMAGE_FILE%" SHA256 | findstr /v "SHA256" | findstr /v "CertUtil" > temp_hash.txt
     set /p ACTUAL_HASH=<temp_hash.txt
-    set /p EXPECTED_HASH=<%IMAGE_FILE%.sha256
+
+    :: 從 .sha256 檔案中只提取校驗碼部分（忽略檔名）
+    for /f "tokens=1" %%a in (%IMAGE_FILE%.sha256) do set EXPECTED_HASH=%%a
 
     if "!ACTUAL_HASH!" == "!EXPECTED_HASH!" (
         echo ✅ 校驗碼驗證成功
