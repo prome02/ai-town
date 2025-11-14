@@ -2,20 +2,17 @@ version: '3.8'
 
 services:
   ai-town:
-    build:
-      context: .
-      dockerfile: Dockerfile.optimized
-      # 使用原始未優化的 Dockerfile,因為專案需要建置工具
+    image: ai-town-ai-town:latest
     container_name: ai-town-production
     ports:
       - "5173:5173"      # Vite 前端
       - "3210:3210"      # Convex 本地後端 WebSocket
     volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-      - ./data:/usr/src/app/data
-      # 資料庫檔案使用 named volume
+      # 只掛載資料庫,不覆蓋應用程式碼
+      # 映像已包含所有必要檔案
       - ai-town-database:/usr/src/app/database
+      # 掛載 .env.example 讓容器內部創建 .env.local
+      - ./.env.local:/usr/src/app/.env.example:ro
     environment:
       - NODE_ENV=production
       - VITE_CONVEX_URL=http://127.0.0.1:3210

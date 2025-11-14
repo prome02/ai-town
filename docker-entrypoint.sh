@@ -134,7 +134,9 @@ echo "[5/6] 🎮 啟動前端應用"
 echo ""
 
 echo "▶️  啟動 Vite 前端服務..."
-nohup npm run dev:frontend > /var/log/vite.log 2>&1 &
+# 使用 npx 直接啟動 vite,避免 npm run 的環境問題
+# npx 已在 PATH 中,直接使用
+nohup npx vite --host 0.0.0.0 > /var/log/vite.log 2>&1 &
 VITE_PID=$!
 
 echo "⏳ 等待 Vite 啟動 (10 秒)..."

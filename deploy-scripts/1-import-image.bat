@@ -123,3 +123,4 @@ echo   1. 執行 2-setup-environment.bat 設置環境
 echo   2. 執行 3-start-container.bat 啟動容器
 echo.
 pause
+exit /b 0

@@ -17,5 +17,6 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "typescript.preferences.importModuleSpecifierEnding": "auto",
-  "javascript.preferences.importModuleSpecifierEnding": "auto"
+  "javascript.preferences.importModuleSpecifierEnding": "auto",
+  "sarif-viewer.connectToGithubCodeScanning": "off"
 }

@@ -150,3 +150,4 @@ echo 下一步:
 echo   執行 3-start-container.bat 啟動容器
 echo.
 pause
+exit /b 0

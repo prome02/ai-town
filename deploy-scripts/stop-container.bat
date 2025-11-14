@@ -28,3 +28,4 @@ echo.
 echo ✅ 容器已停止
 echo.
 pause
+exit /b 0

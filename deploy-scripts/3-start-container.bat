@@ -129,3 +129,4 @@ echo   查看日誌: docker logs ai-town-production
 echo   停止容器: docker-compose down
 echo.
 pause
+exit /b 0

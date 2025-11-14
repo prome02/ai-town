@@ -79,15 +79,31 @@ if exist "data\" (
 
 if exist "convex\" (
     echo   ✅ convex\ 目錄
-    xcopy "convex" "%OUTPUT_DIR%\convex\" /E /I /Q >nul
+    :: 複製 convex 目錄，但排除 _generated 子目錄
+    xcopy "convex" "%OUTPUT_DIR%\convex\" /E /I /Q /EXCLUDE:deploy-scripts\xcopy-exclude.txt >nul 2>&1
+    if errorlevel 1 (
+        :: 如果排除檔案不存在，使用手動方式排除
+        xcopy "convex\*.ts" "%OUTPUT_DIR%\convex\" /I /Q >nul 2>&1
+        xcopy "convex\*.js" "%OUTPUT_DIR%\convex\" /I /Q >nul 2>&1
+        xcopy "convex\*.json" "%OUTPUT_DIR%\convex\" /I /Q >nul 2>&1
+        for /d %%D in (convex\*) do (
+            if /i not "%%~nxD"=="_generated" (
+                xcopy "%%D" "%OUTPUT_DIR%\convex\%%~nxD\" /E /I /Q >nul 2>&1
+            )
+        )
+    )
 ) else (
     echo   ❌ convex\ 目錄
     set MISSING=1
 )
 
-:: 部署腳本
+:: 部署腳本 (排除打包腳本本身和排除清單檔案)
 echo   ✅ 部署腳本
-xcopy "deploy-scripts" "%OUTPUT_DIR%\deploy-scripts\" /E /I /Q >nul
+xcopy "deploy-scripts\*.bat" "%OUTPUT_DIR%\deploy-scripts\" /I /Q >nul
+xcopy "deploy-scripts\*.md" "%OUTPUT_DIR%\deploy-scripts\" /I /Q >nul 2>nul
+:: 排除 package-for-deployment.bat 和 xcopy-exclude.txt
+del "%OUTPUT_DIR%\deploy-scripts\package-for-deployment.bat" >nul 2>&1
+del "%OUTPUT_DIR%\deploy-scripts\xcopy-exclude.txt" >nul 2>&1
 
 :: 文件
 if exist "DOCKER_IMAGE_IMPORT_GUIDE.md" (
@@ -99,6 +115,18 @@ if exist "DOCKER_IMPORT_QUICKSTART.txt" (
     echo   ✅ 快速參考
     copy "DOCKER_IMPORT_QUICKSTART.txt" "%OUTPUT_DIR%\" >nul
 )
+
+:: 創建 .env.local 範本
+echo   ✅ .env.local 範本
+(
+    echo # AI Town 環境變數配置
+    echo.
+    echo # Convex 本地後端 URL
+    echo VITE_CONVEX_URL=http://127.0.0.1:3210
+    echo.
+    echo # Ollama LLM API URL ^(可選^)
+    echo # LLM_API_URL=http://host.docker.internal:11434
+) > "%OUTPUT_DIR%\.env.local"
 
 echo.
 

@@ -141,3 +141,4 @@ echo   - LLM 只在 Agent 開始活動時才會被使用
 echo   - 如需 LLM 功能，請確保 Ollama 服務運行中
 echo.
 pause
+exit /b 0

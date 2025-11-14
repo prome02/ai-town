@@ -99,3 +99,4 @@ ai-town-deployment-package/
 # Docker volumes (如果在專案目錄內)
 database/
 convex_local_storage/
+.vscode/settings.json
