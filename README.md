@@ -221,7 +221,47 @@ there are gentler ways of stopping above. Once you
 
 ## Docker Installation
 
-### Before Launching Docker
+### 快速部署（推薦 - Windows）
+
+**適用於 Windows 用戶的一鍵式部署方案**，已預先配置好所有環境：
+
+#### 1. 確保已構建或載入 Docker 映像
+
+```bash
+# 方式 1: 構建映像
+docker build -t ai-town-ai-town:latest .
+
+# 方式 2: 載入已有映像
+docker load -i ai-town-docker-image.tar
+```
+
+#### 2. 啟動服務
+
+```bash
+.\deploy-scripts\start-docker-production.bat
+```
+
+服務將啟動在：
+- **前端應用**: http://localhost:18000/ai-town/
+- **Convex 後端**: http://localhost:18400/
+
+#### 3. 管理服務
+
+```bash
+# 檢查狀態
+.\deploy-scripts\check-docker-status.bat
+
+# 停止服務
+.\deploy-scripts\stop-docker-production.bat
+```
+
+**詳細說明**: 請參閱 [deploy-scripts/DOCKER_DEPLOYMENT_README.md](deploy-scripts/DOCKER_DEPLOYMENT_README.md)
+
+---
+
+### 手動部署（進階用戶）
+
+#### Before Launching Docker
 
 Modify your `package.json` file to add the `--host` option to your front-end server (Vite):
 

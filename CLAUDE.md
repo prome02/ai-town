@@ -56,26 +56,44 @@ docs/
 
 ### 啟動開發環境
 
-#### 方式 1: 使用自動化腳本 (推薦)
+#### 方式 1: Docker 部署 (推薦 - 生產環境)
 ```bash
-# Windows
-./start-ai-town-local.bat  # 一鍵啟動本地環境
+# Windows - 一鍵部署到 Docker 容器
+.\deploy-scripts\start-docker-production.bat
+
+# 訪問服務
+# 前端: http://localhost:18000/ai-town/
+# Convex: http://localhost:18400/
+
+# 檢查狀態
+.\deploy-scripts\check-docker-status.bat
 
 # 停止服務
-./stop-ai-town.bat
-
-# 切換本地/雲端模式
-./switch-convex-mode.bat
+.\deploy-scripts\stop-docker-production.bat
 ```
 
-#### 方式 2: 手動啟動
+**詳細說明**: `deploy-scripts/DOCKER_DEPLOYMENT_README.md`
+
+#### 方式 2: 本地開發 (推薦 - 開發環境)
+```bash
+# Windows
+.\deploy-scripts\start-ai-town-local.bat  # 一鍵啟動本地環境
+
+# 停止服務
+.\deploy-scripts\stop-ai-town.bat
+
+# 切換本地/雲端模式
+.\deploy-scripts\switch-convex-mode.bat
+```
+
+#### 方式 3: 手動啟動
 參考 `docs/testing/TESTING.md` 的詳細步驟
 
 ### 開發工作流程
 
 1. **啟動環境**
    ```bash
-   ./start-ai-town-local.bat
+   .\deploy-scripts\start-ai-town-local.bat
    # 等待所有服務啟動 (約 15 秒)
    ```
 
@@ -89,7 +107,7 @@ docs/
 
 4. **停止環境**
    ```bash
-   ./stop-ai-town.bat
+   .\deploy-scripts\stop-ai-town.bat
    ```
 
 ## 重要檔案與配置
@@ -144,6 +162,8 @@ docs/
 
 ### 常見問題
 
+#### 本地開發環境
+
 1. **Convex 編譯卡住**
    - 確認本地後端正在運行 (port 3210)
    - 檢查 `.env.local` 設定
@@ -158,10 +178,41 @@ docs/
    # 查看佔用進程
    netstat -ano | findstr ":3210"
    # 或直接執行停止腳本
-   ./stop-ai-town.bat
+   .\deploy-scripts\stop-ai-town.bat
    ```
 
-詳細故障排除: `docs/setup/STARTUP_SCRIPTS_GUIDE.md`
+#### Docker 部署環境
+
+1. **容器無法啟動**
+   ```bash
+   # 查看容器日誌
+   docker logs ai-town-production
+
+   # 檢查容器狀態
+   docker ps -a | grep ai-town
+   ```
+
+2. **端口已被佔用**
+   - 生產環境使用端口 18000 和 18400
+   - 修改 `docker-compose.deployment.yml` 中的端口映射
+
+3. **服務無法訪問**
+   ```bash
+   # 測試端口連接
+   curl http://localhost:18000/
+   curl http://localhost:18400/
+
+   # 查看健康檢查狀態
+   docker inspect ai-town-production --format='{{.State.Health.Status}}'
+   ```
+
+4. **Ollama 連接失敗**
+   - 確保宿主機 Ollama 在運行
+   - 容器使用 `host.docker.internal:11434` 訪問宿主機
+
+詳細故障排除:
+- 本地環境: `docs/setup/STARTUP_SCRIPTS_GUIDE.md`
+- Docker 部署: `deploy-scripts/DOCKER_DEPLOYMENT_README.md`
 
 ## 測試指南
 
@@ -200,12 +251,44 @@ npm test  # 執行單元測試
 
 ## 部署
 
+### Docker 容器部署（推薦）
+
+使用預構建的 Docker 映像快速部署：
+
+```bash
+# 1. 載入或構建映像
+docker load -i ai-town-docker-image.tar
+# 或
+docker build -t ai-town-ai-town:latest .
+
+# 2. 啟動服務
+.\deploy-scripts\start-docker-production.bat
+
+# 3. 訪問應用
+# http://localhost:18000/ai-town/
+```
+
+**優點**：
+- 一鍵啟動，無需配置環境
+- 隔離的運行環境
+- 數據自動持久化
+- 易於管理和監控
+
+**詳細指南**：`deploy-scripts/DOCKER_DEPLOYMENT_README.md`
+
+### 雲端部署（Convex Cloud）
+
+參考官方文檔進行雲端部署。
+
 ### 生產環境檢查清單
 - [ ] 環境變數配置
 - [ ] 生產環境圖片資源
 - [ ] Convex 生產環境設置
 - [ ] Bundle size 優化
 - [ ] 效能測試
+- [ ] Docker 映像安全掃描（如使用 Docker 部署）
+- [ ] 資源限制配置（CPU、記憶體）
+- [ ] 日誌輪轉設定
 
 ## 相關資源
 
