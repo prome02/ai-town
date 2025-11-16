@@ -14,8 +14,8 @@ services:
       - ./.env.docker:/usr/src/app/.env.example:ro
     environment:
       - NODE_ENV=production
-      # Convex 配置 (容器內部使用 3210)
-      - VITE_CONVEX_URL=http://127.0.0.1:3210
+      # Convex 配置 - 從 .env.local 讀取 (由 .env.docker 生成)
+      # 不在此設置 VITE_CONVEX_URL，讓 Vite 從 .env.local 讀取
       - CONVEX_DEPLOYMENT=local
       # Ollama API URL
       - LLM_API_URL=http://host.docker.internal:11434

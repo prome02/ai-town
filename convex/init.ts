@@ -79,6 +79,12 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     objectTiles: map.objmap,
     animatedSprites: map.animatedsprites,
   });
+
+  // 初始化 locations (離散地點系統)
+  await ctx.scheduler.runAfter(0, internal.aiTown.locations.initializeTestLocations, {
+    worldId,
+  });
+
   await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
     worldId,
     generationNumber: engine.generationNumber,

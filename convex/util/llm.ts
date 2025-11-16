@@ -4,7 +4,9 @@ export const LLM_CONFIG = {
   /* Ollama (local) config:
    */
   ollama: true,
-  url: 'http://127.0.0.1:11434',
+  // 默認使用 host.docker.internal 以支持 Docker 環境
+  // 可通過 LLM_API_URL 環境變數覆蓋（本地開發設為 http://127.0.0.1:11434）
+  url: 'http://host.docker.internal:11434',
   chatModel: 'qwen2.5:14b' as const, // 通用對話模型,適合角色扮演
   embeddingModel: 'nomic-embed-text',
   embeddingDimension: 1024,

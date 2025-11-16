@@ -9,7 +9,11 @@ docker-compose*.yml
 .dockerignore
 *.tar
 *.tar.gz
+*.sha256
 ai-town-image.tar
+deploy-scripts/images/
+deploy-scripts/docs/
+deploy-scripts/dockerfiles/
 
 # Node.js
 node_modules

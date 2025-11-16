@@ -18,7 +18,8 @@ nvm use 18 > /dev/null 2>&1 || true
 # 設定變數
 PROJECT_DIR="/usr/src/app"
 ENV_FILE="$PROJECT_DIR/.env.local"
-LOCAL_CONVEX_URL="http://127.0.0.1:3210"
+LOCAL_CONVEX_URL="http://127.0.0.1:3210"  # 容器內部訪問地址
+BROWSER_CONVEX_URL="http://localhost:18400"  # 瀏覽器訪問地址
 ADMIN_KEY="0135d8598650f8f5cb0f30c34ec2e2bb62793bc28717c8eb6fb577996d50be5f4281b59181095065c5d0f86a2c31ddbe9b597ec62b47ded69782cd"
 
 cd "$PROJECT_DIR"
@@ -29,22 +30,15 @@ cd "$PROJECT_DIR"
 echo "[1/6] 📋 檢查環境設定"
 echo ""
 
-if [ ! -f "$ENV_FILE" ]; then
-    echo "⚠️  找不到 .env.local，從 .env.example 複製"
-    if [ -f ".env.example" ]; then
-        cp .env.example .env.local
-        echo "✅ 已創建 .env.local"
-    else
-        echo "❌ 錯誤: 找不到 .env.example"
-        exit 1
-    fi
+# 總是從 .env.example 重新創建 .env.local 以確保使用最新配置
+if [ -f ".env.example" ]; then
+    echo "▶️  從 .env.example 創建 .env.local"
+    cp -f .env.example .env.local
+    echo "✅ 已創建 .env.local (使用瀏覽器可訪問的 Convex URL)"
 else
-    echo "✅ .env.local 存在"
+    echo "❌ 錯誤: 找不到 .env.example"
+    exit 1
 fi
-
-# 確保使用本地 Convex URL
-sed -i "s|VITE_CONVEX_URL=.*|VITE_CONVEX_URL=$LOCAL_CONVEX_URL|g" "$ENV_FILE"
-echo "✅ 已設定為本地 Convex URL"
 echo ""
 
 # ============================================================
@@ -82,6 +76,9 @@ fi
 # --convex-origin: WebSocket/API 連接地址
 # --convex-site: HTTP Actions 連接地址
 echo "▶️  啟動 Convex 後端 (port 3210, origin: http://localhost:3210)..."
+# 確保 LLM_API_URL 環境變數被傳遞給 Convex 後端
+export LLM_API_URL="${LLM_API_URL:-http://host.docker.internal:11434}"
+echo "   LLM API URL: $LLM_API_URL"
 nohup convex-local-backend \
   --interface 0.0.0.0 \
   --convex-origin http://localhost:3210 \
@@ -113,11 +110,25 @@ echo ""
 echo "[4/6] 🔄 啟動 Convex 函數同步"
 echo ""
 
-echo "▶️  在背景部署 Convex 函數到本地後端..."
-nohup npx convex deploy --admin-key "$ADMIN_KEY" --url "$LOCAL_CONVEX_URL" > /var/log/convex-deploy.log 2>&1 &
-DEPLOY_PID=$!
-echo "   Convex 函數部署已在背景啟動 (PID: $DEPLOY_PID)"
-echo "   🔍 部署日誌: /var/log/convex-deploy.log"
+echo "▶️  部署 Convex 函數到本地後端..."
+npx convex deploy --admin-key "$ADMIN_KEY" --url "$LOCAL_CONVEX_URL" > /var/log/convex-deploy.log 2>&1
+if [ $? -eq 0 ]; then
+    echo "✅ Convex 函數部署完成"
+else
+    echo "❌ Convex 函數部署失敗，查看日誌: /var/log/convex-deploy.log"
+    tail -20 /var/log/convex-deploy.log
+fi
+echo ""
+
+echo "▶️  執行初始化函數 (創建世界和角色數據)..."
+npx convex run init --admin-key "$ADMIN_KEY" --url "$LOCAL_CONVEX_URL" > /var/log/convex-init.log 2>&1
+if [ $? -eq 0 ]; then
+    echo "✅ 世界數據初始化完成"
+    echo "   📋 初始化日誌: /var/log/convex-init.log"
+else
+    echo "⚠️  初始化可能失敗或已初始化過，繼續啟動..."
+    echo "   📋 查看日誌: /var/log/convex-init.log"
+fi
 echo ""
 
 echo "▶️  啟動 Convex Dev (監聽函數變更)..."
@@ -125,6 +136,13 @@ nohup npx convex dev --admin-key "$ADMIN_KEY" --url "$LOCAL_CONVEX_URL" > /var/l
 CONVEX_DEV_PID=$!
 
 echo "✅ Convex Dev 已啟動 (PID: $CONVEX_DEV_PID)"
+echo ""
+
+# Convex Dev 會修改 .env.local，需要還原為瀏覽器可訪問的 URL
+echo "▶️  修正 .env.local 為瀏覽器可訪問的 URL..."
+sleep 2  # 等待 convex dev 寫入完成
+sed -i "s|VITE_CONVEX_URL=.*|VITE_CONVEX_URL=$BROWSER_CONVEX_URL|g" .env.local
+echo "✅ .env.local 已更新為: $BROWSER_CONVEX_URL"
 echo ""
 
 # ============================================================
