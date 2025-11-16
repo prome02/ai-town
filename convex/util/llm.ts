@@ -5,10 +5,10 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'gpt-oss:20b-cloud' as const,
+  chatModel: 'qwen2.5:14b' as const,
   embeddingModel: 'nomic-embed-text',
-  embeddingDimension: 1024,
-  stopWords: ['<|eot_id|>'],
+  embeddingDimension: 768,
+  stopWords: [],
   apiKey: () => undefined,
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
