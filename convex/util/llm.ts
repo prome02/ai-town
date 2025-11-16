@@ -5,9 +5,9 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: (process.env.LLM_CHAT_MODEL || 'glm-4.6:cloud') as const,
-  embeddingModel: process.env.LLM_EMBEDDING_MODEL || 'nomic-embed-text',
-  embeddingDimension: Number(process.env.LLM_EMBEDDING_DIMENSION) || 768,
+  chatModel: 'glm-4.6:cloud' as const,
+  embeddingModel: 'nomic-embed-text',
+  embeddingDimension: 768,
   stopWords: [],
   apiKey: () => undefined,
   // embeddingModel: 'llama3',
@@ -81,7 +81,7 @@ export async function chatCompletion(
   assertApiKey();
   // OLLAMA_MODEL is legacy
   body.model =
-    body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
+    body.model ?? process.env.LLM_CHAT_MODEL ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   if (LLM_CONFIG.stopWords) stopWords.push(...LLM_CONFIG.stopWords);
   console.log(body);
@@ -177,7 +177,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
       },
 
       body: JSON.stringify({
-        model: LLM_CONFIG.embeddingModel,
+        model: process.env.LLM_EMBEDDING_MODEL || LLM_CONFIG.embeddingModel,
         input: texts.map((text) => text.replace(/\n/g, ' ')),
       }),
     });
@@ -655,11 +655,11 @@ export async function ollamaFetchEmbedding(text: string) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: LLM_CONFIG.embeddingModel, prompt: text }),
+      body: JSON.stringify({ model: process.env.LLM_EMBEDDING_MODEL || LLM_CONFIG.embeddingModel, prompt: text }),
     });
     if (resp.status === 404) {
       const error = await resp.text();
-      await tryPullOllama(LLM_CONFIG.embeddingModel, error);
+      await tryPullOllama(process.env.LLM_EMBEDDING_MODEL || LLM_CONFIG.embeddingModel, error);
       throw new Error(`Failed to fetch embeddings: ${resp.status}`);
     }
     return (await resp.json()).embedding as number[];
