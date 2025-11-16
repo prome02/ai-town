@@ -5,9 +5,9 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'glm-4.6:cloud' as const,
-  embeddingModel: 'nomic-embed-text',
-  embeddingDimension: 768,
+  chatModel: (process.env.LLM_CHAT_MODEL || 'glm-4.6:cloud') as const,
+  embeddingModel: process.env.LLM_EMBEDDING_MODEL || 'nomic-embed-text',
+  embeddingDimension: Number(process.env.LLM_EMBEDDING_DIMENSION) || 768,
   stopWords: [],
   apiKey: () => undefined,
   // embeddingModel: 'llama3',
