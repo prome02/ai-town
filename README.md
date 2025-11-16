@@ -18,6 +18,38 @@ and should be suitable from everything from a simple project to play around with
 A secondary goal is to make a JS/TS framework available as most simulators in this space
 (including the original paper above) are written in Python.
 
+## Project Versions
+
+This repository contains two distinct versions of AI Town:
+
+### 🎮 Legacy: Pixel-Based Game (branch: `legacy/pixel-game`)
+The original 2D pixel-art version where AI characters move around on a continuous pixel map using A* pathfinding. Features include:
+- Interactive 2D pixel world with PIXI.js rendering
+- Continuous coordinate-based movement system
+- Characters navigate through a shared 2D space
+- Suitable for open-world exploration gameplay
+
+**To use this version:**
+```bash
+git checkout legacy/pixel-game
+```
+
+### 📹 Current: Surveillance Hotel (branch: `main` / `feature/location-system`)
+A redesigned experience focused on observation rather than direct interaction. Features include:
+- Discrete location-based system (rooms, lobby, garden, etc.)
+- Simplified movement: characters transition between defined locations
+- Monitoring camera perspective - observe AI character interactions
+- Streamlined architecture removing A* pathfinding and PIXI.js dependencies
+
+**To use this version:**
+```bash
+git checkout main
+# or
+git checkout feature/location-system
+```
+
+For design rationale and technical details, see [MVP_EXECUTION_PLAN.md](docs/development/MVP_EXECUTION_PLAN.md).
+
 ## Overview
 
 - 💻 [Stack](#stack)
