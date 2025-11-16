@@ -50,7 +50,10 @@ echo.
 REM ============================================================
 REM 設定變數
 REM ============================================================
-set "PROJECT_DIR=%~dp0"
+REM 取得腳本所在目錄的上層目錄（專案根目錄）
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%.."
+set "PROJECT_DIR=%CD%\"
 set "ENV_FILE=%PROJECT_DIR%.env.local"
 
 REM 動態取得下載資料夾位置
