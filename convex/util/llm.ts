@@ -50,6 +50,47 @@ function apiUrl(path: string) {
   }
 }
 
+// Cache for model capabilities to avoid repeated API calls
+const modelCapabilitiesCache = new Map<string, { hasThinking: boolean }>();
+
+// Check if a model has thinking capability (for Ollama models)
+async function checkModelCapabilities(modelName: string): Promise<{ hasThinking: boolean }> {
+  // Return cached result if available
+  if (modelCapabilitiesCache.has(modelName)) {
+    return modelCapabilitiesCache.get(modelName)!;
+  }
+
+  // Only check for Ollama models
+  if (!LLM_CONFIG.ollama) {
+    const result = { hasThinking: false };
+    modelCapabilitiesCache.set(modelName, result);
+    return result;
+  }
+
+  try {
+    const response = await fetch(apiUrl('/api/show'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: modelName }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const hasThinking = data.capabilities?.includes('thinking') || false;
+      const result = { hasThinking };
+      modelCapabilitiesCache.set(modelName, result);
+      return result;
+    }
+  } catch (error) {
+    console.error('Failed to check model capabilities:', error);
+  }
+
+  // Default to no thinking capability if check fails
+  const result = { hasThinking: false };
+  modelCapabilitiesCache.set(modelName, result);
+  return result;
+}
+
 const AuthHeaders = (): Record<string, string> =>
   LLM_CONFIG.apiKey()
     ? {
@@ -90,8 +131,12 @@ export async function chatCompletion(
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    // Use Ollama native API for better compatibility with thinking models
-    if (LLM_CONFIG.ollama) {
+    // Check if model has thinking capability and use Ollama native API if so
+    const capabilities = await checkModelCapabilities(body.model!);
+    const useNativeAPI = LLM_CONFIG.ollama && capabilities.hasThinking;
+
+    if (useNativeAPI) {
+      console.log(`Using Ollama native API for model ${body.model} (has thinking capability)`);
       const ollamaBody = {
         model: body.model,
         messages: body.messages,
