@@ -54,3 +54,10 @@ ai-town/
 
 # Claude Code 配置
 .claude/
+
+# 本地備份與部署檔案
+*.backup
+ai-town-deployment-package/
+docker-backup/
+deploy-scripts/images/
+nul
