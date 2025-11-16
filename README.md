@@ -1,4 +1,13 @@
-# AI Town 🏠💻💌
+# AI Town 🏠💻💌 - Legacy Pixel Game Version
+
+> **📌 注意**: 這是 **legacy/pixel-game** 分支 - 原始的 2D 像素地圖遊戲版本
+>
+> 如需監視器風格旅館遊戲版本，請切換至:
+> ```bash
+> git checkout main
+> # 或
+> git checkout feature/location-system
+> ```
 
 [Live Demo](https://www.convex.dev/ai-town)
 
@@ -7,6 +16,14 @@
 <img width="1454" alt="Screen Shot 2023-08-14 at 10 01 00 AM" src="https://github.com/a16z-infra/ai-town/assets/3489963/a4c91f17-23ed-47ec-8c4e-9f9a8505057d">
 
 AI Town is a virtual town where AI characters live, chat and socialize.
+
+## 🎮 Pixel Game Version Features
+
+This legacy version includes:
+- **2D Pixel World**: Interactive pixel-art environment with PIXI.js rendering
+- **Continuous Movement**: Characters move on a continuous coordinate system using A* pathfinding
+- **Shared 2D Space**: All characters navigate through the same shared world
+- **Classic Gameplay**: Original AI Town experience focused on open-world exploration
 
 This project is a deployable starter kit for easily building and customizing your own version of AI town.
 Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
@@ -17,6 +34,31 @@ The back-end natively supports shared global state, transactions, and a simulati
 and should be suitable from everything from a simple project to play around with to a scalable, multi-player game.
 A secondary goal is to make a JS/TS framework available as most simulators in this space
 (including the original paper above) are written in Python.
+
+## Quick Start (本地開發模式)
+
+**Windows 用戶快速啟動**:
+```bash
+# 1. 確保 Ollama 正在運行
+ollama serve
+
+# 2. 確保有必要的模型
+ollama pull gpt-oss:20b-cloud
+ollama pull nomic-embed-text
+
+# 3. 一鍵啟動 AI Town
+.\deploy-scripts\start-ai-town-local.bat
+
+# 4. 訪問應用
+# http://localhost:5173/
+```
+
+**停止服務**:
+```bash
+.\deploy-scripts\stop-ai-town.bat
+```
+
+詳細設定說明請參考 [CLAUDE.md](CLAUDE.md)。
 
 ## Overview
 
