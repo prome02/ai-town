@@ -90,6 +90,41 @@ export async function chatCompletion(
     retries,
     ms,
   } = await retryWithBackoff(async () => {
+    // Use Ollama native API for better compatibility with thinking models
+    if (LLM_CONFIG.ollama) {
+      const ollamaBody = {
+        model: body.model,
+        messages: body.messages,
+        stream: body.stream || false,
+      };
+      const result = await fetch(apiUrl('/api/chat'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ollamaBody),
+      });
+      if (!result.ok) {
+        const error = await result.text();
+        console.error({ error });
+        if (result.status === 404) {
+          await tryPullOllama(body.model!, error);
+        }
+        throw {
+          retry: result.status === 429 || result.status >= 500,
+          error: new Error(`Chat completion failed with code ${result.status}: ${error}`),
+        };
+      }
+      const json = await result.json();
+      const content = json.message?.content;
+      if (content === undefined) {
+        throw new Error('Unexpected result from Ollama: ' + JSON.stringify(json));
+      }
+      console.log(content);
+      return content;
+    }
+
+    // Use OpenAI-compatible API for non-Ollama providers
     const result = await fetch(apiUrl('/v1/chat/completions'), {
       method: 'POST',
       headers: {
@@ -114,17 +149,8 @@ export async function chatCompletion(
       return new ChatCompletionContent(result.body!, stopWords);
     } else {
       const json = (await result.json()) as CreateChatCompletionResponse;
-      let content = json.choices[0].message?.content;
-
-      // Handle models that use 'reasoning' field instead of 'content' (e.g., glm-4.6:cloud, gpt-oss:20b-cloud)
-      if (!content || content === '') {
-        const reasoning = (json.choices[0].message as any)?.reasoning;
-        if (reasoning) {
-          content = reasoning;
-        }
-      }
-
-      if (content === undefined || content === '') {
+      const content = json.choices[0].message?.content;
+      if (content === undefined) {
         throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
       }
       console.log(content);
