@@ -69,13 +69,27 @@ export const agentGenerateMessage = internalAction({
       default:
         assertNever(args.type);
     }
-    const text = await completionFn(
-      ctx,
-      args.worldId,
-      args.conversationId as GameId<'conversations'>,
-      args.playerId as GameId<'players'>,
-      args.otherPlayerId as GameId<'players'>,
-    );
+
+    let text;
+    try {
+      text = await completionFn(
+        ctx,
+        args.worldId,
+        args.conversationId as GameId<'conversations'>,
+        args.playerId as GameId<'players'>,
+        args.otherPlayerId as GameId<'players'>,
+      );
+    } catch (error) {
+      console.error(`Error generating message for ${args.type}:`, error);
+      // Use a fallback message if LLM fails
+      if (args.type === 'start') {
+        text = "Hello!";
+      } else if (args.type === 'leave') {
+        text = "I have to go now. Goodbye!";
+      } else {
+        text = "...";
+      }
+    }
 
     await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
       worldId: args.worldId,
