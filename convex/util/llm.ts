@@ -5,7 +5,7 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'qwen2.5:14b' as const,
+  chatModel: 'glm-4.6:cloud' as const,
   embeddingModel: 'nomic-embed-text',
   embeddingDimension: 768,
   stopWords: [],
@@ -114,8 +114,17 @@ export async function chatCompletion(
       return new ChatCompletionContent(result.body!, stopWords);
     } else {
       const json = (await result.json()) as CreateChatCompletionResponse;
-      const content = json.choices[0].message?.content;
-      if (content === undefined) {
+      let content = json.choices[0].message?.content;
+
+      // Handle models that use 'reasoning' field instead of 'content' (e.g., glm-4.6:cloud, gpt-oss:20b-cloud)
+      if (!content || content === '') {
+        const reasoning = (json.choices[0].message as any)?.reasoning;
+        if (reasoning) {
+          content = reasoning;
+        }
+      }
+
+      if (content === undefined || content === '') {
         throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
       }
       console.log(content);
