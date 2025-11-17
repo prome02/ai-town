@@ -7,20 +7,16 @@ import {
   ACTION_TIMEOUT,
   AWKWARD_CONVERSATION_TIMEOUT,
   CONVERSATION_COOLDOWN,
-  CONVERSATION_DISTANCE,
   INVITE_ACCEPT_PROBABILITY,
   INVITE_TIMEOUT,
   MAX_CONVERSATION_DURATION,
   MAX_CONVERSATION_MESSAGES,
   MESSAGE_COOLDOWN,
-  MIDPOINT_THRESHOLD,
   PLAYER_CONVERSATION_COOLDOWN,
 } from '../constants';
 import { FunctionArgs } from 'convex/server';
 import { MutationCtx, internalMutation, internalQuery } from '../_generated/server';
-import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
-import { movePlayer } from './movement';
 import { insertInput } from './insertInput';
 
 export class Agent {
@@ -68,14 +64,13 @@ export class Agent {
     const recentlyAttemptedInvite =
       this.lastInviteAttempt && now < this.lastInviteAttempt + CONVERSATION_COOLDOWN;
     const doingActivity = player.activity && player.activity.until > now;
-    if (doingActivity && (conversation || player.pathfinding)) {
+    if (doingActivity && conversation) {
       player.activity!.until = now;
     }
     // If we're not in a conversation, do something.
-    // If we aren't doing an activity or moving, do something.
-    // If we have been wandering but haven't thought about something to do for
-    // a while, do something.
-    if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
+    // If we aren't doing an activity, do something.
+    // In discrete location system, agents can always make decisions.
+    if (!conversation && !doingActivity) {
       this.startOperation(game, now, 'agentDoSomething', {
         worldId: game.worldId,
         player: player.serialize(),
@@ -114,10 +109,6 @@ export class Agent {
         if (otherPlayer.human || Math.random() < INVITE_ACCEPT_PROBABILITY) {
           console.log(`Agent ${player.id} accepting invite from ${otherPlayer.id}`);
           conversation.acceptInvite(game, player);
-          // Stop moving so we can start walking towards the other player.
-          if (player.pathfinding) {
-            delete player.pathfinding;
-          }
         } else {
           console.log(`Agent ${player.id} rejecting invite from ${otherPlayer.id}`);
           conversation.rejectInvite(game, now, player);
@@ -125,37 +116,14 @@ export class Agent {
         return;
       }
       if (member.status.kind === 'walkingOver') {
-        // Leave a conversation if we've been waiting for too long.
+        // In discrete location system, no physical movement needed for conversations
+        // Just wait briefly before starting the conversation
         if (member.invited + INVITE_TIMEOUT < now) {
           console.log(`Giving up on invite to ${otherPlayer.id}`);
           conversation.leave(game, now, player);
           return;
         }
-
-        // Don't keep moving around if we're near enough.
-        const playerDistance = distance(player.position, otherPlayer.position);
-        if (playerDistance < CONVERSATION_DISTANCE) {
-          return;
-        }
-
-        // Keep moving towards the other player.
-        // If we're close enough to the player, just walk to them directly.
-        if (!player.pathfinding) {
-          let destination;
-          if (playerDistance < MIDPOINT_THRESHOLD) {
-            destination = {
-              x: Math.floor(otherPlayer.position.x),
-              y: Math.floor(otherPlayer.position.y),
-            };
-          } else {
-            destination = {
-              x: Math.floor((player.position.x + otherPlayer.position.x) / 2),
-              y: Math.floor((player.position.y + otherPlayer.position.y) / 2),
-            };
-          }
-          console.log(`Agent ${player.id} walking towards ${otherPlayer.id}...`, destination);
-          movePlayer(game, now, player, destination);
-        }
+        // No movement logic needed - conversations happen at any location
         return;
       }
       if (member.status.kind === 'participating') {
