@@ -10,6 +10,7 @@ export const LLM_CONFIG = {
   embeddingDimension: 768,
   stopWords: [],
   apiKey: () => undefined,
+  conversationLanguage: 'en', // 預設對話語言: en, zh-TW, zh-CN, ja, ko 等
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
 
@@ -48,6 +49,29 @@ function apiUrl(path: string) {
   } else {
     return host + path;
   }
+}
+
+// Get conversation language from environment variable or config
+export function getConversationLanguage(): string {
+  return process.env.LLM_CONVERSATION_LANGUAGE ?? LLM_CONFIG.conversationLanguage;
+}
+
+// Language instruction templates
+const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+  'en': 'You must respond in English only.',
+  'zh-TW': '你必須只使用繁體中文回應。',
+  'zh-CN': '你必须只使用简体中文回应。',
+  'ja': '日本語のみで応答してください。',
+  'ko': '한국어로만 응답해야 합니다.',
+  'es': 'Debes responder solo en español.',
+  'fr': 'Vous devez répondre uniquement en français.',
+  'de': 'Sie müssen nur auf Deutsch antworten.',
+};
+
+// Get language instruction for the current configured language
+export function getLanguageInstruction(): string {
+  const lang = getConversationLanguage();
+  return LANGUAGE_INSTRUCTIONS[lang] ?? LANGUAGE_INSTRUCTIONS['en'];
 }
 
 // Cache for model capabilities to avoid repeated API calls
