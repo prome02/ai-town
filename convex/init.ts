@@ -3,6 +3,7 @@ import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
 import * as map from '../data/gentle';
+import { defaultLocations } from '../data/locations';
 import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
@@ -79,6 +80,20 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     objectTiles: map.objmap,
     animatedSprites: map.animatedsprites,
   });
+
+  // Initialize discrete locations for the world
+  for (const location of defaultLocations) {
+    await ctx.db.insert('locations', {
+      worldId,
+      locationId: location.id,
+      name: location.name,
+      description: location.description,
+      position: location.position,
+      type: location.type,
+      capacity: location.capacity,
+    });
+  }
+
   await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
     worldId,
     generationNumber: engine.generationNumber,

@@ -178,12 +178,7 @@ export class Game extends AbstractGame {
     for (const player of this.world.players.values()) {
       player.tick(this, now);
     }
-    for (const player of this.world.players.values()) {
-      player.tickPathfinding(this, now);
-    }
-    for (const player of this.world.players.values()) {
-      player.tickPosition(this, now);
-    }
+    // Removed tickPathfinding and tickPosition - no longer needed in discrete location system
     for (const conversation of this.world.conversations.values()) {
       conversation.tick(this, now);
     }
