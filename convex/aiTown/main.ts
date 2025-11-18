@@ -65,6 +65,18 @@ export async function kickEngine(ctx: MutationCtx, worldId: Id<'worlds'>) {
   if (!engine.running) {
     throw new Error(`Engine ${engineId} isn't currently running`);
   }
+
+  // Double-check that the engine is actually stuck before restarting
+  // This prevents race conditions with ongoing saveWorld mutations
+  const now = Date.now();
+  const maxLag = ENGINE_ACTION_DURATION * 2;
+  if (engine.currentTime && now - engine.currentTime <= maxLag) {
+    console.debug(
+      `Engine ${engineId} appears healthy (lag: ${now - engine.currentTime}ms), skipping restart`
+    );
+    return;
+  }
+
   const generationNumber = engine.generationNumber + 1;
   await ctx.db.patch(engineId, { generationNumber });
   await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {

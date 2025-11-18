@@ -76,7 +76,8 @@ export const restartDeadWorlds = internalMutation({
     const now = Date.now();
 
     // Restart an engine if it hasn't run for 2x its action duration.
-    const engineTimeout = now - ENGINE_ACTION_DURATION * 2;
+    // Check if engine.currentTime is lagging behind current time by more than threshold.
+    const maxLag = ENGINE_ACTION_DURATION * 2;
     const worlds = await ctx.db.query('worldStatus').collect();
     for (const worldStatus of worlds) {
       if (worldStatus.status !== 'running') {
@@ -86,8 +87,11 @@ export const restartDeadWorlds = internalMutation({
       if (!engine) {
         throw new Error(`Invalid engine ID: ${worldStatus.engineId}`);
       }
-      if (engine.currentTime && engine.currentTime < engineTimeout) {
-        console.warn(`Restarting dead engine ${engine._id}...`);
+      // Check if engine's simulation time is lagging behind real time by more than maxLag
+      if (engine.currentTime && now - engine.currentTime > maxLag) {
+        console.warn(
+          `Restarting dead engine ${engine._id} (lag: ${now - engine.currentTime}ms, threshold: ${maxLag}ms)...`
+        );
         await kickEngine(ctx, worldStatus.worldId);
       }
     }
