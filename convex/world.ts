@@ -255,3 +255,38 @@ export const previousConversation = query({
     return null;
   },
 });
+
+// Query to get all locations for a world with player counts
+export const worldLocations = query({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args) => {
+    // Get all locations for this world
+    const locations = await ctx.db
+      .query('locations')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .collect();
+
+    // Get the world to access players
+    const world = await ctx.db.get(args.worldId);
+    if (!world) {
+      return [];
+    }
+
+    // Count players at each location
+    const locationCounts = new Map<string, number>();
+    for (const player of world.players) {
+      const locationId = player.currentLocationId;
+      if (locationId) {
+        locationCounts.set(locationId, (locationCounts.get(locationId) || 0) + 1);
+      }
+    }
+
+    // Return locations with player counts
+    return locations.map((location) => ({
+      ...location,
+      playerCount: locationCounts.get(location.locationId) || 0,
+    }));
+  },
+});

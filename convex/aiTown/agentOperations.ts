@@ -14,6 +14,7 @@ import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constan
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
+import { defaultLocations } from '../../data/locations';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -110,39 +111,40 @@ export const agentDoSomething = internalAction({
     const recentlyAttemptedInvite =
       agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
     const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
-    // Decide whether to do an activity or wander somewhere.
-    if (!player.pathfinding) {
-      if (recentActivity || justLeftConversation) {
-        await sleep(Math.random() * 1000);
-        await ctx.runMutation(api.aiTown.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
-            operationId: args.operationId,
-            agentId: agent.id,
-            destination: wanderDestination(map),
+
+    // Decide whether to do an activity or wander to a new location.
+    // In the discrete location system, agents can always move or do activities.
+    if (recentActivity || justLeftConversation) {
+      // Agent will wander to a random location
+      await sleep(Math.random() * 1000);
+      await ctx.runMutation(api.aiTown.main.sendInput, {
+        worldId: args.worldId,
+        name: 'finishDoSomething',
+        args: {
+          operationId: args.operationId,
+          agentId: agent.id,
+          locationId: wanderLocation(),
+        },
+      });
+      return;
+    } else {
+      // TODO: have LLM choose the activity & emoji
+      const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+      await sleep(Math.random() * 1000);
+      await ctx.runMutation(api.aiTown.main.sendInput, {
+        worldId: args.worldId,
+        name: 'finishDoSomething',
+        args: {
+          operationId: args.operationId,
+          agentId: agent.id,
+          activity: {
+            description: activity.description,
+            emoji: activity.emoji,
+            until: Date.now() + activity.duration,
           },
-        });
-        return;
-      } else {
-        // TODO: have LLM choose the activity & emoji
-        const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
-        await sleep(Math.random() * 1000);
-        await ctx.runMutation(api.aiTown.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
-            operationId: args.operationId,
-            agentId: agent.id,
-            activity: {
-              description: activity.description,
-              emoji: activity.emoji,
-              until: Date.now() + activity.duration,
-            },
-          },
-        });
-        return;
-      }
+        },
+      });
+      return;
     }
     const invitee =
       justLeftConversation || recentlyAttemptedInvite
@@ -169,10 +171,8 @@ export const agentDoSomething = internalAction({
   },
 });
 
-function wanderDestination(worldMap: WorldMap) {
-  // Wander someonewhere at least one tile away from the edge.
-  return {
-    x: 1 + Math.floor(Math.random() * (worldMap.width - 2)),
-    y: 1 + Math.floor(Math.random() * (worldMap.height - 2)),
-  };
+function wanderLocation(): string {
+  // Randomly select a location from the available locations
+  const randomIndex = Math.floor(Math.random() * defaultLocations.length);
+  return defaultLocations[randomIndex].id;
 }

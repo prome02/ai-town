@@ -106,13 +106,12 @@ export class Conversation {
       }
     }
 
-    // Orient the two players towards each other if they're not moving.
+    // Orient the two players towards each other.
+    // In discrete location system, players are always stationary, so they can always face each other.
     if (member1.status.kind === 'participating' && member2.status.kind === 'participating') {
       const v = normalize(vector(player1.position, player2.position));
-      if (!player1.pathfinding && v) {
+      if (v) {
         player1.facing = v;
-      }
-      if (!player2.pathfinding && v) {
         player2.facing.dx = -v.dx;
         player2.facing.dy = -v.dy;
       }

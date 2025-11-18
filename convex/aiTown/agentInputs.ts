@@ -2,9 +2,7 @@ import { v } from 'convex/values';
 import { agentId, conversationId, parseGameId } from './ids';
 import { Player, activity } from './player';
 import { Conversation, conversationInputs } from './conversation';
-import { movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
-import { point } from '../util/types';
 import { Descriptions } from '../../data/characters';
 import { AgentDescription } from './agentDescription';
 import { Agent } from './agent';
@@ -37,7 +35,7 @@ export const agentInputs = {
     args: {
       operationId: v.string(),
       agentId: v.id('agents'),
-      destination: v.optional(point),
+      locationId: v.optional(v.string()),
       invitee: v.optional(v.id('players')),
       activity: v.optional(activity),
     },
@@ -65,8 +63,10 @@ export const agentInputs = {
         Conversation.start(game, now, player, invitee);
         agent.lastInviteAttempt = now;
       }
-      if (args.destination) {
-        movePlayer(game, now, player, args.destination);
+      if (args.locationId) {
+        // Use the discrete location system
+        player.currentLocationId = args.locationId;
+        player.lastInput = now;
       }
       if (args.activity) {
         player.activity = args.activity;
