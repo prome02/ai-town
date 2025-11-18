@@ -109,9 +109,9 @@ async function buildCharacters() {
 
   console.log('🔍 掃描角色配置文件...');
 
-  // 讀取所有 .md 文件
+  // 讀取所有 .md 文件（排除 README.md）
   const files = fs.readdirSync(charactersDir)
-    .filter(f => f.endsWith('.md'))
+    .filter(f => f.endsWith('.md') && f.toLowerCase() !== 'readme.md')
     .sort();
 
   if (files.length === 0) {

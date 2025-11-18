@@ -13,7 +13,7 @@ import type { CharacterConfig } from './parseMarkdown';
  * 從 Markdown 文件自動生成
  * 來源: data/characters/*.md
  *
- * 最後更新: 2025-11-18T13:49:50.878Z
+ * 最後更新: 2025-11-18T14:08:33.540Z
  */
 export const Descriptions: CharacterConfig[] = [
   {
