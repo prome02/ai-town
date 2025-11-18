@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Town 對話記錄查看器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .stat-card p {
+            color: #333;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .controls {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .file-input {
+            flex: 1;
+            min-width: 200px;
+        }
+        input[type="file"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 100%;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+        }
+        .messages {
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .author {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .timestamp {
+            color: #999;
+        }
+        .message-text {
+            color: #333;
+            line-height: 1.6;
+        }
+        .conversation-separator {
+            margin: 30px 0;
+            text-align: center;
+            position: relative;
+        }
+        .conversation-separator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #ddd;
+        }
+        .conversation-separator span {
+            background: white;
+            padding: 0 15px;
+            position: relative;
+            color: #999;
+            font-size: 0.9em;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏰 AI Town 對話記錄查看器</h1>
+            <p>查看導出的對話記錄</p>
+        </header>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <h3>總訊息數</h3>
+                <p id="totalMessages">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>對話數</h3>
+                <p id="totalConversations">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>時間範圍</h3>
+                <p id="timeRange" style="font-size: 0.9em;">-</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="file-input">
+                <input type="file" id="fileInput" accept=".json" />
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchBox" placeholder="搜尋訊息內容或作者..." />
+            </div>
+            <select id="conversationFilter">
+                <option value="all">所有對話</option>
+            </select>
+        </div>
+
+        <div class="messages" id="messages">
+            <div class="empty-state">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                <h3>請選擇 JSON 文件</h3>
+                <p>選擇導出的對話記錄 JSON 文件來查看內容</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allMessages = [];
+        let filteredMessages = [];
+
+        const fileInput = document.getElementById('fileInput');
+        const searchBox = document.getElementById('searchBox');
+        const conversationFilter = document.getElementById('conversationFilter');
+        const messagesContainer = document.getElementById('messages');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        searchBox.addEventListener('input', filterMessages);
+        conversationFilter.addEventListener('change', filterMessages);
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    allMessages = JSON.parse(e.target.result);
+                    updateStats();
+                    updateConversationFilter();
+                    filterMessages();
+                } catch (error) {
+                    alert('讀取文件失敗: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function updateStats() {
+            const conversations = new Set(allMessages.map(m => m.conversationId));
+            const timestamps = allMessages.map(m => new Date(m.timestamp));
+
+            document.getElementById('totalMessages').textContent = allMessages.length.toLocaleString();
+            document.getElementById('totalConversations').textContent = conversations.size.toLocaleString();
+
+            if (timestamps.length > 0) {
+                const oldest = new Date(Math.min(...timestamps));
+                const newest = new Date(Math.max(...timestamps));
+                const days = Math.ceil((newest - oldest) / (1000 * 60 * 60 * 24));
+                document.getElementById('timeRange').textContent = `${days} 天`;
+            }
+        }
+
+        function updateConversationFilter() {
+            const conversations = [...new Set(allMessages.map(m => m.conversationId))];
+            const select = document.getElementById('conversationFilter');
+
+            select.innerHTML = '<option value="all">所有對話</option>';
+            conversations.forEach(convId => {
+                const count = allMessages.filter(m => m.conversationId === convId).length;
+                const option = document.createElement('option');
+                option.value = convId;
+                option.textContent = `對話 #${convId} (${count} 則訊息)`;
+                select.appendChild(option);
+            });
+        }
+
+        function filterMessages() {
+            const searchTerm = searchBox.value.toLowerCase();
+            const selectedConv = conversationFilter.value;
+
+            filteredMessages = allMessages.filter(msg => {
+                const matchesSearch = searchTerm === '' ||
+                    msg.text.toLowerCase().includes(searchTerm) ||
+                    (msg.authorName && msg.authorName.toLowerCase().includes(searchTerm));
+
+                const matchesConv = selectedConv === 'all' ||
+                    msg.conversationId.toString() === selectedConv;
+
+                return matchesSearch && matchesConv;
+            });
+
+            renderMessages();
+        }
+
+        function renderMessages() {
+            if (filteredMessages.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <h3>沒有找到訊息</h3>
+                        <p>試試調整搜尋條件</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            let lastConvId = null;
+
+            filteredMessages.forEach((msg, index) => {
+                if (lastConvId !== null && lastConvId !== msg.conversationId) {
+                    html += `
+                        <div class="conversation-separator">
+                            <span>對話 #${msg.conversationId}</span>
+                        </div>
+                    `;
+                }
+                lastConvId = msg.conversationId;
+
+                const date = new Date(msg.timestamp);
+                const formattedDate = date.toLocaleString('zh-TW');
+
+                html += `
+                    <div class="message">
+                        <div class="message-header">
+                            <span class="author">${msg.authorName || `Player ${msg.author}`}</span>
+                            <span class="timestamp">${formattedDate}</span>
+                        </div>
+                        <div class="message-text">${escapeHtml(msg.text)}</div>
+                    </div>
+                `;
+            });
+
+            messagesContainer.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -10,7 +10,10 @@
     "dev:backend": "just convex dev --tail-logs",
     "dev:frontend": "vite --host ",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
-    "le": "vite src/editor/"
+    "le": "vite src/editor/",
+    "db:check": "node scripts/checkDatabaseSize.js",
+    "db:export": "node scripts/exportMessages.js",
+    "db:import": "node scripts/importMessages.js"
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",
