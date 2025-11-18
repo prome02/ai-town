@@ -61,3 +61,6 @@ ai-town-deployment-package/
 docker-backup/
 deploy-scripts/images/
 nul
+
+# 資料庫導出文件
+exports/
