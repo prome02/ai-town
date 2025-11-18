@@ -13,7 +13,8 @@
     "le": "vite src/editor/",
     "db:check": "node scripts/checkDatabaseSize.js",
     "db:export": "node scripts/exportMessages.js",
-    "db:import": "node scripts/importMessages.js"
+    "db:import": "node scripts/importMessages.js",
+    "build:characters": "node --loader ts-node/esm scripts/buildCharacters.ts"
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",

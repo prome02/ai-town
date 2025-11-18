@@ -5,7 +5,7 @@ import { Conversation, conversationInputs } from './conversation';
 import { movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
 import { point } from '../util/types';
-import { Descriptions } from '../../data/characters';
+import { Descriptions } from '../../data/characters/index';
 import { AgentDescription } from './agentDescription';
 import { Agent } from './agent';
 
