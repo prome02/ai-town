@@ -19,6 +19,7 @@ game/node_modules/
 # misc
 .DS_Store
 *.pem
+*.pdf
 
 # debug
 npm-debug.log*
@@ -54,3 +55,48 @@ ai-town/
 
 # Claude Code 配置
 .claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+ENV/
+
+# LLM Roleplay Evaluator
+llm_roleplay_evaluator/.env
+llm_roleplay_evaluator/data/logs/
+llm_roleplay_evaluator/data/results/
+llm_roleplay_evaluator/__pycache__/
+
+# Test files
+test*.js
+test*.html
+test*.py
+*.test.js
+*.spec.js
+
+# Temporary files
+nul
+*.tmp
+
+# Environment backup files
+.env*.backup
+
+# Docker 映像與部署包
+*.tar
+*.tar.gz
+*.tar.bz2
+*.zip
+ai-town-image*
+ai-town-deployment-package/
+*.sha256
+
+# Docker volumes (如果在專案目錄內)
+database/
+convex_local_storage/
+.vscode/settings.json

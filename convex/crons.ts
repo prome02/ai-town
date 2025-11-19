@@ -7,11 +7,12 @@ import { v } from 'convex/values';
 
 const crons = cronJobs();
 
-crons.interval(
-  'stop inactive worlds',
-  { seconds: IDLE_WORLD_TIMEOUT / 1000 },
-  internal.world.stopInactiveWorlds,
-);
+// Removed: stop inactive worlds cron job
+// crons.interval(
+//   'stop inactive worlds',
+//   { seconds: IDLE_WORLD_TIMEOUT / 1000 },
+//   internal.world.stopInactiveWorlds,
+// );
 
 crons.interval('restart dead worlds', { seconds: 60 }, internal.world.restartDeadWorlds);
 

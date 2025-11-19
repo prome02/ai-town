@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  ai-town:
+    image: ai-town-ai-town:latest
+    container_name: ai-town-production
+    ports:
+      - "18000:5173"      # Vite 前端 (避免端口衝突，使用 18000)
+      - "18400:3210"      # Convex 本地後端 WebSocket (避免端口衝突，使用 18400)
+    volumes:
+      # 只掛載資料庫,不覆蓋應用程式碼
+      - ai-town-database:/usr/src/app/database
+      # 掛載環境配置模板讓啟動腳本使用
+      - ./.env.docker:/usr/src/app/.env.example:ro
+    environment:
+      - NODE_ENV=production
+      # Convex 配置 - 從 .env.local 讀取 (由 .env.docker 生成)
+      # 不在此設置 VITE_CONVEX_URL，讓 Vite 從 .env.local 讀取
+      - CONVEX_DEPLOYMENT=local
+      # Ollama API URL
+      - LLM_API_URL=http://host.docker.internal:11434
+      # 跳過 .env.local 掛載，讓啟動腳本創建
+      - SKIP_ENV_MOUNT=true
+    networks:
+      - ai-town-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ai-town-database:
+
+networks:
+  ai-town-network:
+    driver: bridge

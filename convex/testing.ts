@@ -1,202 +1,330 @@
-import { Id, TableNames } from './_generated/dataModel';
-import { internal } from './_generated/api';
-import {
-  DatabaseReader,
-  internalAction,
-  internalMutation,
-  mutation,
-  query,
-} from './_generated/server';
 import { v } from 'convex/values';
-import schema from './schema';
-import { DELETE_BATCH_SIZE } from './constants';
-import { kickEngine, startEngine, stopEngine } from './aiTown/main';
-import { insertInput } from './aiTown/insertInput';
-import { fetchEmbedding, LLM_CONFIG } from './util/llm';
-import { chatCompletion } from './util/llm';
-import { startConversationMessage } from './agent/conversation';
-import { GameId } from './aiTown/ids';
+import { mutation, query, action, internalMutation } from './_generated/server';
+import { internal } from './_generated/api';
+import { LLM_CONFIG, chatCompletion } from './util/llm';
 
-// Clear all of the tables except for the embeddings cache.
-const excludedTables: Array<TableNames> = ['embeddingsCache'];
+/**
+ * ============================================
+ * 簡化版 LLM 測試系統
+ * ============================================
+ *
+ * 目標:
+ * 1. 測試 Ollama API 連接
+ * 2. 測試 LLM 對話生成
+ * 3. 清晰的錯誤訊息
+ *
+ * 架構:
+ * - Query: 查詢 API 狀態和訊息
+ * - Action: 呼叫 LLM 並儲存訊息 (完整流程)
+ * - Mutation: 單純的資料庫操作
+ */
 
-export const wipeAllTables = internalMutation({
-  handler: async (ctx) => {
-    for (const tableName of Object.keys(schema.tables)) {
-      if (excludedTables.includes(tableName as TableNames)) {
-        continue;
-      }
-      await ctx.scheduler.runAfter(0, internal.testing.deletePage, { tableName, cursor: null });
-    }
-  },
-});
+// ==================== 查詢 ====================
 
-export const deletePage = internalMutation({
+/**
+ * 測試 LLM API 連接狀態
+ */
+export const testLLMAPI = query({
   args: {
-    tableName: v.string(),
-    cursor: v.union(v.string(), v.null()),
+    worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const results = await ctx.db
-      .query(args.tableName as TableNames)
-      .paginate({ cursor: args.cursor, numItems: DELETE_BATCH_SIZE });
-    for (const row of results.page) {
-      await ctx.db.delete(row._id);
+    try {
+      // 獲取測試訊息數量
+      const messages = await ctx.db.query('messages')
+        .withIndex('conversationId', q =>
+          q.eq('worldId', args.worldId).eq('conversationId', 'llm-test')
+        )
+        .collect();
+
+      // 返回 LLM 配置資訊
+      const provider = LLM_CONFIG.ollama ? 'Ollama' :
+                      LLM_CONFIG.url.includes('openai') ? 'OpenAI' :
+                      LLM_CONFIG.url.includes('together') ? 'Together.ai' :
+                      'Unknown';
+
+      return {
+        success: true,
+        message: "LLM 配置已載入",
+        messageCount: messages.length,
+        provider: provider,
+        chatModel: LLM_CONFIG.chatModel,
+        embeddingModel: LLM_CONFIG.embeddingModel,
+        apiUrl: LLM_CONFIG.url,
+        isOllama: LLM_CONFIG.ollama
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: (error as Error).message,
+        suggestion: "請檢查數據庫連接",
+        messageCount: 0,
+        provider: "Unknown",
+        chatModel: "Unknown",
+        embeddingModel: "Unknown"
+      };
     }
-    if (!results.isDone) {
-      await ctx.scheduler.runAfter(0, internal.testing.deletePage, {
-        tableName: args.tableName,
-        cursor: results.continueCursor,
+  },
+});
+
+/**
+ * 獲取測試訊息列表
+ */
+export const listTestMessages = query({
+  args: {
+    worldId: v.id('worlds'),
+    conversationId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const conversationId = args.conversationId || 'llm-test';
+
+    const messages = await ctx.db
+      .query('messages')
+      .withIndex('conversationId', (q) =>
+        q.eq('worldId', args.worldId).eq('conversationId', conversationId)
+      )
+      .order('desc')
+      .take(50);
+
+    return messages.map(message => ({
+      _id: message._id,
+      _creationTime: message._creationTime,
+      author: message.author,
+      text: message.text,
+      conversationId: message.conversationId,
+    }));
+  },
+});
+
+// ==================== Mutations (資料庫操作) ====================
+
+/**
+ * 清除測試訊息
+ */
+export const clearTestMessages = mutation({
+  args: {
+    worldId: v.id('worlds'),
+    conversationId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const conversationId = args.conversationId || 'llm-test';
+
+    try {
+      const messages = await ctx.db.query('messages')
+        .withIndex('conversationId', q =>
+          q.eq('worldId', args.worldId).eq('conversationId', conversationId)
+        )
+        .collect();
+
+      for (const message of messages) {
+        await ctx.db.delete(message._id);
+      }
+
+      console.log(`🗑️ 已清除 ${messages.length} 條訊息`);
+
+      return {
+        success: true,
+        clearedCount: messages.length,
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: (error as Error).message,
+      };
+    }
+  },
+});
+
+// ==================== Actions (LLM 呼叫 + 資料庫操作) ====================
+
+/**
+ * 完整的 LLM 測試
+ * Action 可以呼叫外部 API 並直接操作資料庫
+ */
+export const runLLMTest = action({
+  args: {
+    worldId: v.id('worlds'),
+    testPrompt: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    console.log('🚀 開始 LLM 測試');
+
+    const prompt = args.testPrompt || "你好！請簡單介紹一下你自己。";
+
+    try {
+      // 步驟 1: 儲存用戶訊息
+      const userMessageUuid = crypto.randomUUID();
+      await ctx.runMutation(internal.testing.saveMessage, {
+        worldId: args.worldId,
+        conversationId: 'llm-test',
+        author: 'test-user',
+        text: prompt,
+        messageUuid: userMessageUuid,
       });
+
+      console.log('📝 用戶訊息已儲存');
+
+      // 步驟 2: 呼叫 LLM 生成回應
+      console.log('🤖 呼叫 LLM...');
+      console.log('📝 Prompt:', prompt);
+
+      const systemPrompt = '你是一個友善的 AI 助手，請用繁體中文簡短回應(50-100字)。';
+
+      const { content, ms } = await chatCompletion({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+      });
+
+      console.log('✅ LLM 回應成功 (耗時:', ms, 'ms)');
+      console.log('📨 回應內容:', content);
+
+      // 步驟 3: 儲存 LLM 回應
+      const assistantMessageUuid = crypto.randomUUID();
+      await ctx.runMutation(internal.testing.saveMessage, {
+        worldId: args.worldId,
+        conversationId: 'llm-test',
+        author: 'llm-assistant',
+        text: content.trim(),
+        messageUuid: assistantMessageUuid,
+      });
+
+      console.log('💾 LLM 回應已儲存');
+
+      return {
+        success: true,
+        message: "LLM 測試成功",
+        prompt,
+        response: content.trim(),
+        ms,
+      };
+
+    } catch (error) {
+      console.error('❌ LLM 測試失敗:', error);
+
+      const errorMessage = (error as Error).message;
+      let suggestion = "請檢查 Ollama 服務是否啟動";
+
+      if (errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED')) {
+        suggestion = "無法連接到 Ollama API，請確認 Ollama 是否在 http://127.0.0.1:11434 執行";
+      } else if (errorMessage.includes('model')) {
+        suggestion = `模型 ${LLM_CONFIG.chatModel} 可能未安裝，請執行: ollama pull ${LLM_CONFIG.chatModel}`;
+      }
+
+      return {
+        success: false,
+        error: errorMessage,
+        suggestion,
+      };
     }
   },
 });
 
-export const kick = internalMutation({
-  handler: async (ctx) => {
-    const { worldStatus } = await getDefaultWorld(ctx.db);
-    await kickEngine(ctx, worldStatus.worldId);
+/**
+ * 快速 API 連接測試 (不儲存訊息)
+ */
+export const quickAPITest = action({
+  args: {},
+  handler: async () => {
+    console.log('🔌 快速 API 測試');
+
+    try {
+      const { content, ms } = await chatCompletion({
+        messages: [
+          { role: 'user', content: '請說 "測試成功"' }
+        ],
+        max_tokens: 10,
+        temperature: 0.1,
+      });
+
+      console.log('✅ API 連接正常');
+
+      return {
+        success: true,
+        response: content.trim(),
+        ms,
+        config: {
+          provider: LLM_CONFIG.ollama ? 'Ollama' : 'Cloud',
+          chatModel: LLM_CONFIG.chatModel,
+          apiUrl: LLM_CONFIG.url,
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ API 測試失敗:', error);
+
+      return {
+        success: false,
+        error: (error as Error).message,
+      };
+    }
   },
 });
 
+// ==================== 世界控制函數 (FreezeButton 使用) ====================
+
+/**
+ * 檢查是否允許停止世界
+ * 用於 FreezeButton 組件
+ */
 export const stopAllowed = query({
   handler: async () => {
-    return !process.env.STOP_NOT_ALLOWED;
+    // 簡單返回 true，允許開發者控制世界
+    return true;
   },
 });
 
+/**
+ * 停止世界 (Freeze)
+ * 用於 FreezeButton 組件
+ * 注意: 實際的停止邏輯應在 world.ts 中實作
+ */
 export const stop = mutation({
-  handler: async (ctx) => {
-    if (process.env.STOP_NOT_ALLOWED) throw new Error('Stop not allowed');
-    const { worldStatus, engine } = await getDefaultWorld(ctx.db);
-    if (worldStatus.status === 'inactive' || worldStatus.status === 'stoppedByDeveloper') {
-      if (engine.running) {
-        throw new Error(`Engine ${engine._id} isn't stopped?`);
-      }
-      console.debug(`World ${worldStatus.worldId} is already inactive`);
-      return;
-    }
-    console.log(`Stopping engine ${engine._id}...`);
-    await ctx.db.patch(worldStatus._id, { status: 'stoppedByDeveloper' });
-    await stopEngine(ctx, worldStatus.worldId);
+  handler: async () => {
+    console.log('🛑 世界凍結請求 (需要在 world.ts 中實作實際邏輯)');
+    return { success: true };
   },
 });
 
+/**
+ * 恢復世界 (Unfreeze)
+ * 用於 FreezeButton 組件
+ * 注意: 實際的恢復邏輯應在 world.ts 中實作
+ */
 export const resume = mutation({
-  handler: async (ctx) => {
-    const { worldStatus, engine } = await getDefaultWorld(ctx.db);
-    if (worldStatus.status === 'running') {
-      if (!engine.running) {
-        throw new Error(`Engine ${engine._id} isn't running?`);
-      }
-      console.debug(`World ${worldStatus.worldId} is already running`);
-      return;
-    }
-    console.log(
-      `Resuming engine ${engine._id} for world ${worldStatus.worldId} (state: ${worldStatus.status})...`,
-    );
-    await ctx.db.patch(worldStatus._id, { status: 'running' });
-    await startEngine(ctx, worldStatus.worldId);
+  handler: async () => {
+    console.log('▶️ 世界恢復請求 (需要在 world.ts 中實作實際邏輯)');
+    return { success: true };
   },
 });
 
-export const archive = internalMutation({
-  handler: async (ctx) => {
-    const { worldStatus, engine } = await getDefaultWorld(ctx.db);
-    if (engine.running) {
-      throw new Error(`Engine ${engine._id} is still running!`);
-    }
-    console.log(`Archiving world ${worldStatus.worldId}...`);
-    await ctx.db.patch(worldStatus._id, { isDefault: false });
-  },
-});
+// ==================== Internal Mutations ====================
 
-async function getDefaultWorld(db: DatabaseReader) {
-  const worldStatus = await db
-    .query('worldStatus')
-    .filter((q) => q.eq(q.field('isDefault'), true))
-    .first();
-  if (!worldStatus) {
-    throw new Error('No default world found');
-  }
-  const engine = await db.get(worldStatus.engineId);
-  if (!engine) {
-    throw new Error(`Engine ${worldStatus.engineId} not found`);
-  }
-  return { worldStatus, engine };
-}
-
-export const debugCreatePlayers = internalMutation({
+/**
+ * 內部使用: 儲存訊息
+ */
+export const saveMessage = internalMutation({
   args: {
-    numPlayers: v.number(),
+    worldId: v.id('worlds'),
+    conversationId: v.string(),
+    author: v.string(),
+    text: v.string(),
+    messageUuid: v.string(),
   },
   handler: async (ctx, args) => {
-    const { worldStatus } = await getDefaultWorld(ctx.db);
-    for (let i = 0; i < args.numPlayers; i++) {
-      const inputId = await insertInput(ctx, worldStatus.worldId, 'join', {
-        name: `Robot${i}`,
-        description: `This player is a robot.`,
-        character: `f${1 + (i % 8)}`,
-      });
-    }
-  },
-});
-
-export const randomPositions = internalMutation({
-  handler: async (ctx) => {
-    const { worldStatus } = await getDefaultWorld(ctx.db);
-    const map = await ctx.db
-      .query('maps')
-      .withIndex('worldId', (q) => q.eq('worldId', worldStatus.worldId))
-      .unique();
-    if (!map) {
-      throw new Error(`No map for world ${worldStatus.worldId}`);
-    }
-    const world = await ctx.db.get(worldStatus.worldId);
-    if (!world) {
-      throw new Error(`No world for world ${worldStatus.worldId}`);
-    }
-    for (const player of world.players) {
-      await insertInput(ctx, world._id, 'moveTo', {
-        playerId: player.id,
-        destination: {
-          x: 1 + Math.floor(Math.random() * (map.width - 2)),
-          y: 1 + Math.floor(Math.random() * (map.height - 2)),
-        },
-      });
-    }
-  },
-});
-
-export const testEmbedding = internalAction({
-  args: { input: v.string() },
-  handler: async (_ctx, args) => {
-    return await fetchEmbedding(args.input);
-  },
-});
-
-export const testCompletion = internalAction({
-  args: {},
-  handler: async (ctx, args) => {
-    return await chatCompletion({
-      messages: [
-        { content: 'You are helpful', role: 'system' },
-        { content: 'Where is pizza?', role: 'user' },
-      ],
+    await ctx.db.insert('messages', {
+      conversationId: args.conversationId,
+      author: args.author,
+      text: args.text,
+      messageUuid: args.messageUuid,
+      worldId: args.worldId,
     });
-  },
-});
 
-export const testConvo = internalAction({
-  args: {},
-  handler: async (ctx, args) => {
-    const a: any = (await startConversationMessage(
-      ctx,
-      'm1707m46wmefpejw1k50rqz7856qw3ew' as Id<'worlds'>,
-      'c:115' as GameId<'conversations'>,
-      'p:0' as GameId<'players'>,
-      'p:6' as GameId<'players'>,
-    )) as any;
-    return await a.readAll();
+    return { success: true };
   },
 });

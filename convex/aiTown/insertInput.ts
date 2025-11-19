@@ -9,12 +9,17 @@ export async function insertInput<Name extends InputNames>(
   name: Name,
   args: InputArgs<Name>,
 ): Promise<Id<'inputs'>> {
-  const worldStatus = await ctx.db
-    .query('worldStatus')
-    .withIndex('worldId', (q) => q.eq('worldId', worldId))
-    .unique();
-  if (!worldStatus) {
-    throw new Error(`World for engine ${worldId} not found`);
+  try {
+    const worldStatus = await ctx.db
+      .query('worldStatus')
+      .withIndex('worldId', (q) => q.eq('worldId', worldId))
+      .unique();
+    if (!worldStatus) {
+      throw new Error(`World for engine ${worldId} not found`);
+    }
+    return await engineInsertInput(ctx, worldStatus.engineId, name, args);
+  } catch (error) {
+    console.error(`Error inserting input ${name} for world ${worldId}:`, error);
+    throw error; // 重新拋出錯誤讓上層處理
   }
-  return await engineInsertInput(ctx, worldStatus.engineId, name, args);
 }

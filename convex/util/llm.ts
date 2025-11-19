@@ -4,8 +4,10 @@ export const LLM_CONFIG = {
   /* Ollama (local) config:
    */
   ollama: true,
-  url: 'http://127.0.0.1:11434',
-  chatModel: 'gpt-oss:20b-cloud' as const,
+  // 默認使用 host.docker.internal 以支持 Docker 環境
+  // 可通過 LLM_API_URL 環境變數覆蓋（本地開發設為 http://127.0.0.1:11434）
+  url: 'http://host.docker.internal:11434',
+  chatModel: 'qwen2.5:14b' as const, // 通用對話模型,適合角色扮演
   embeddingModel: 'nomic-embed-text',
   embeddingDimension: 1024,
   stopWords: ['<|eot_id|>'],
@@ -146,12 +148,45 @@ export async function tryPullOllama(model: string, error: string) {
 }
 
 export async function fetchEmbeddingBatch(texts: string[]) {
+  // 讓 Ollama 也使用 OpenAI 兼容 API
   if (LLM_CONFIG.ollama) {
+    assertApiKey();
+    const {
+      result: json,
+      retries,
+      ms,
+    } = await retryWithBackoff(async () => {
+      const result = await fetch(apiUrl('/v1/embeddings'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthHeaders(),
+        },
+        body: JSON.stringify({
+          model: LLM_CONFIG.embeddingModel,
+          input: texts.map((text) => text.replace(/\n/g, ' ')),
+        }),
+      });
+      if (!result.ok) {
+        throw {
+          retry: result.status === 429 || result.status >= 500,
+          error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
+        };
+      }
+      return (await result.json()) as CreateEmbeddingResponse;
+    });
+    if (json.data.length !== texts.length) {
+      console.error(json);
+      throw new Error('Unexpected number of embeddings');
+    }
+    const allembeddings = json.data;
+    allembeddings.sort((a, b) => a.index - b.index);
     return {
       ollama: true as const,
-      embeddings: await Promise.all(
-        texts.map(async (t) => (await ollamaFetchEmbedding(t)).embedding),
-      ),
+      embeddings: allembeddings.map(({ embedding }) => embedding),
+      usage: json.usage?.total_tokens,
+      retries,
+      ms,
     };
   }
   assertApiKey();
