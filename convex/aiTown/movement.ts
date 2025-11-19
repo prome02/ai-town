@@ -15,6 +15,16 @@ export function stopPlayer(player: Player) {
 }
 
 /**
+ * In discrete location system, there are no blocked positions.
+ * This function is kept for backwards compatibility.
+ * @deprecated Not used in discrete location system
+ */
+export function blocked(game: Game, now: number, position: Point, playerId: string): boolean {
+  // In discrete location system, all positions are accessible
+  return false;
+}
+
+/**
  * Legacy function kept for backwards compatibility with agent code.
  * In discrete system, this is essentially a no-op as agents should use
  * the location system instead.
