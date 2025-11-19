@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './App.tsx';
 import { LocationPrototype } from './components/LocationPrototype.tsx';
+import { HotelGame } from './components/HotelGame.tsx';
 import './index.css';
 import 'uplot/dist/uPlot.min.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/prototype" element={<LocationPrototype />} />
+          <Route path="/hotel" element={<HotelGame />} />
         </Routes>
       </BrowserRouter>
     </ConvexClientProvider>
