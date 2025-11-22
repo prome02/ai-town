@@ -57,6 +57,7 @@ ai-town/
 
 # 本地備份與部署檔案
 *.backup
+*.bak
 ai-town-deployment-package/
 docker-backup/
 deploy-scripts/images/
@@ -64,3 +65,56 @@ nul
 
 # 資料庫導出文件
 exports/
+
+# Docker 映像檔
+*.tar
+*.tar.gz
+*.tar.gz.sha256
+
+# 資料庫檔案
+*.sqlite
+*.sqlite3
+*.db
+
+# TypeScript 建置資訊
+*.tsbuildinfo
+
+# 環境變數備份
+*.env.*.backup
+
+# PDF 和其他二進位文件
+*.pdf
+
+# 壓縮檔案
+*.zip
+*.rar
+*.7z
+
+# 暫存檔案
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Windows 系統檔案
+Thumbs.db
+desktop.ini
+
+# IDE 和編輯器暫存檔
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.iml
+
+# 日誌檔案
+*.log
+logs/
+
+# LLM 角色扮演評估工具 - 測試結果和虛擬環境
+llm_roleplay_evaluator/data/results/
+llm_roleplay_evaluator/.venv/
+llm_roleplay_evaluator/__pycache__/
+llm_roleplay_evaluator/*.pyc
+llm_roleplay_evaluator/*.pyo
+llm_roleplay_evaluator/*.pyd
